@@ -621,9 +621,7 @@ var KEYWORDS = [
 function response(room, msg, sender, isGroupChat, replier, imageDB, packageName) {
 
   if (packageName === "com.kakao.talk") {
-    if (sent["__session__" + room] === undefined) {
-      sent["__session__" + room] = replier;
-    }
+    sent["__session__" + room] = replier;
 
     if (msg.charAt(0) === "/" && msg.trim().length > 1) {
       var cmd = msg.trim().slice(1).toLowerCase();
