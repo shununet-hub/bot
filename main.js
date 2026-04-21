@@ -1,7 +1,7 @@
 var sent = {};
 var _yfAuth = null;
 var _yfAuthTs = 0;
-var GEMINI_API_KEY = "여기에_Gemini_API_키_입력";
+var GEMINI_API_KEY = "AIzaSyAuhEhz1AmQ0_PniGWkqzAx8qSrl08eyVc";
 
 // ── 종목 룩업: { s: 심볼, n: 표시명 } 또는 특수 문자열 ───────────────
 var LOOKUP = {
@@ -382,7 +382,7 @@ function extractYoutubeUrl(msg) {
 // ── Gemini로 YouTube 영상 요약 ────────────────────────────────────────
 function summarizeYoutube(ytUrl) {
   try {
-    var apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + GEMINI_API_KEY;
+    var apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-latest:generateContent?key=" + GEMINI_API_KEY;
     var reqBody = JSON.stringify({
       contents: [{
         parts: [
