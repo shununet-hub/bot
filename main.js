@@ -784,19 +784,19 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       }
     }
 
-    // ── 트럼프/미주 방 → 사또밥 전달 (소스 방에서 봇 무응답) ──
+    // ── 트럼프/미주 방 → 삼하마샌 전달 (소스 방에서 봇 무응답) ──
     var isFromTrump = room.indexOf("트럼프") !== -1;
     var isFromMiju  = room.indexOf("미주") !== -1;
 
     if (isFromTrump || isFromMiju) {
-      var targetSess = sent["__session__사또밥"];
+      var targetSess = sent["__session__삼하마샌"];
 
       if (isFromTrump && msg.length > 5) {
         var key2 = msg.substring(0, 100).replace(/\s/g, "");
         if (!sent[key2]) {
           sent[key2] = true;
           if (targetSess) targetSess.reply(msg);
-          else Api.replyRoom("사또밥", msg);
+          else Api.replyRoom("삼하마샌", msg);
         }
         return;
       }
@@ -811,7 +811,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
           if (!sent[key3]) {
             sent[key3] = true;
             if (targetSess) targetSess.reply(msg);
-            else Api.replyRoom("사또밥", msg);
+            else Api.replyRoom("삼하마샌", msg);
           }
         }
         return;
@@ -840,5 +840,5 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
   cleanSent();
 
   java.lang.Thread.sleep(2000);
-  sendToRoom("사또밥", msg);
+  sendToRoom("삼하마샌", msg);
 }
