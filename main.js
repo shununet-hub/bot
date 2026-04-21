@@ -82,6 +82,15 @@ var ALL_INDICES = [
   { label: "러셀2000", symbol: "^RUT"  },
 ];
 
+// ── URL 인코딩 (Rhino 환경 안전) ──────────────────────────────────────
+function urlEncode(str) {
+  try {
+    return String(java.net.URLEncoder.encode(str, "UTF-8")).replace(/\+/g, "%20");
+  } catch (e) {
+    return encodeURIComponent(str);
+  }
+}
+
 // ── HTTP GET ──────────────────────────────────────────────────────────
 function httpGet(url) {
   try {
@@ -106,25 +115,58 @@ function httpGet(url) {
   }
 }
 
-// ── 한글 종목명 → 심볼 검색 (LOOKUP에 없는 국내 종목용) ──────────────
-function searchKrSymbol(query) {
-  var raw = httpGet(
-    "https://query1.finance.yahoo.com/v1/finance/search?q=" +
-    encodeURIComponent(query) +
-    "&quotesCount=5&newsCount=0&listsCount=0"
-  );
-  if (!raw) return null;
-  try {
-    var data = JSON.parse(raw);
-    if (!data.quotes || !data.quotes.length) return null;
-    for (var i = 0; i < data.quotes.length; i++) {
-      var q = data.quotes[i];
-      if (!q.symbol) continue;
-      if (q.symbol.indexOf(".KS") !== -1 || q.symbol.indexOf(".KQ") !== -1) {
-        return q.symbol;
-      }
+// ── 특정 방으로 메시지 전송 (세션 replier 우선, 3000자 단위 분할) ─────
+// [버그 수정] Api.replyRoom 대신 저장된 세션 replier 사용 → 안정적 전송
+// [버그 수정] 긴 메시지 분할로 잘림 방지
+function sendToRoom(roomName, message) {
+  var MAX = 3000;
+  var i = 0;
+  while (i < message.length) {
+    var chunk = message.substring(i, Math.min(i + MAX, message.length));
+    var r = sent["__session__" + roomName];
+    if (r) r.reply(chunk);
+    else Api.replyRoom(roomName, chunk);
+    i += MAX;
+    if (i < message.length) java.lang.Thread.sleep(800);
+  }
+}
+
+// ── sent 초기화 (세션 replier는 보존) ────────────────────────────────
+// [버그 수정] 기존 sent={} 리셋이 세션까지 날려서 포워딩 불가해지는 문제 해결
+function cleanSent() {
+  if (Object.keys(sent).length > 500) {
+    var keep = {};
+    for (var k in sent) {
+      if (k.indexOf("__session__") === 0) keep[k] = sent[k];
     }
-    return data.quotes[0].symbol || null;
+    sent = keep;
+  }
+}
+
+// ── 네이버 금융 자동완성으로 국내 종목 심볼 탐색 ─────────────────────
+// [버그 수정] Yahoo Finance 검색이 한글에서 OTC/미국 심볼을 반환하는 문제 해결
+// 네이버 금융은 한글 검색 완벽 지원 + 6자리 코드 + 시장(코스피/코스닥) 정보 제공
+function searchKrSymbol(query) {
+  try {
+    var raw = httpGet(
+      "https://ac.finance.naver.com/ac?q=" + urlEncode(query) +
+      "&q_enc=UTF-8&target=stock&with_article=N"
+    );
+    if (!raw) return null;
+    var data = JSON.parse(raw);
+    var items = data.items;
+    if (!items || !items.length) return null;
+    for (var i = 0; i < items.length; i++) {
+      var item = items[i];
+      if (!item || !item[1]) continue;
+      var code = String(item[1]);
+      if (!/^\d{6}$/.test(code)) continue;
+      // item[2] 에 시장 정보 포함 ("코스닥" 이면 .KQ, 나머지는 .KS)
+      var market = item[2] ? String(item[2]) : "";
+      var suffix = (market.indexOf("코스닥") !== -1) ? ".KQ" : ".KS";
+      return code + suffix;
+    }
+    return null;
   } catch (e) {
     return null;
   }
@@ -134,7 +176,7 @@ function searchKrSymbol(query) {
 function fetchQuote(symbol) {
   var raw = httpGet(
     "https://query1.finance.yahoo.com/v8/finance/chart/" +
-    encodeURIComponent(symbol) +
+    urlEncode(symbol) +
     "?range=1d&interval=1d&includePrePost=false"
   );
   if (!raw) return null;
@@ -161,11 +203,9 @@ function fetchQuote(symbol) {
 }
 
 // ── 숫자 포맷 헬퍼 ────────────────────────────────────────────────────
-// 정수 천단위 쉼표 (원화용)
 function commasInt(n) {
   return Math.round(Math.abs(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
-// 소수점 포함 천단위 쉼표 (지수·달러용)
 function commasFloat(n) {
   var parts = Math.abs(n).toFixed(2).split(".");
   parts[0]  = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -173,19 +213,11 @@ function commasFloat(n) {
 }
 
 // ── 단일 종목 메시지 포맷 ─────────────────────────────────────────────
-// 형식:
-//   📊 종목명 (심볼)
-//   (빈 줄)
-//   현재가: XXX
-//   ▲/▼ 변동 (변동%)
-//   전일종가: XXX
 function formatQuote(info, displayName) {
   var isKRW   = (info.currency === "KRW");
   var isIndex = (info.symbol.charAt(0) === "^");
   var arrow   = info.change >= 0 ? "▲" : "▼";
   var sign    = info.change >= 0 ? "+" : "";
-
-  // 심볼 표시: .KS/.KQ와 ^ 제거
   var dispSym = info.symbol.replace(/\.(KS|KQ)$/, "").replace(/^\^/, "");
   var name    = displayName || info.name;
 
@@ -253,12 +285,12 @@ function handleSlash(query, replier) {
     symbol      = entry.s;
     displayName = entry.n;
   } else if (/[가-힣]/.test(query)) {
-    // 한글 종목명 → Yahoo Finance 검색으로 심볼 탐색
+    // 한글 종목명 → 네이버 금융으로 KS/KQ 심볼 탐색
     symbol = searchKrSymbol(query);
     if (!symbol) { replier.reply("❌ [" + query + "] 을 찾을 수 없습니다."); return; }
-    displayName = query; // 사용자가 입력한 한글명을 그대로 표시
+    displayName = query;
   } else {
-    // 영문 티커 직접 시도 (예: /sndk → SNDK)
+    // 영문 티커 직접 시도
     symbol      = query.toUpperCase();
     displayName = null;
   }
@@ -272,6 +304,7 @@ function handleSlash(query, replier) {
 function response(room, msg, sender, isGroupChat, replier, imageDB, packageName) {
 
   if (packageName === "com.kakao.talk") {
+    // 모든 카톡 방의 세션 저장 (포워딩에 사용)
     if (sent["__session__" + room] === undefined) {
       sent["__session__" + room] = replier;
     }
@@ -284,11 +317,12 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
     }
 
     // 카톡 → 카톡 (트럼프뉴스 → 삼하마샌)
+    // [버그 수정] sendToRoom 사용으로 세션 유지 + 안정적 전송
     if (room === "트럼프뉴스" && msg.indexOf("트럼프") !== -1) {
       var key2 = msg.substring(0, 100).replace(/\s/g, "");
       if (!sent[key2]) {
         sent[key2] = true;
-        Api.replyRoom("삼하마샌", msg);
+        sendToRoom("삼하마샌", msg);
       }
     }
     return;
@@ -326,8 +360,9 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
   if (sent[key]) return;
   sent[key] = true;
 
-  if (Object.keys(sent).length > 500) sent = {};
+  // [버그 수정] 세션 초기화 시 replier 보존 + sendToRoom으로 잘림 방지
+  cleanSent();
 
   java.lang.Thread.sleep(2000);
-  Api.replyRoom("삼하마샌", msg.substring(0, 10000));
+  sendToRoom("삼하마샌", msg);
 }
