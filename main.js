@@ -54,8 +54,8 @@ var LOOKUP = {
   "버노바":         { s: "GEV",    n: "버노바" },
   "베르노바":       { s: "GEV",    n: "버노바" },
   "폼팩터":         { s: "FORM",   n: "폼팩터" },
-  "키오시아":       { s: "KYOCF",  n: "키오시아" },
-  "키옥시아":       { s: "KYOCF",  n: "키오시아" },
+  "키오시아":       { s: "285A.T", n: "키오시아" },
+  "키옥시아":       { s: "285A.T", n: "키오시아" },
 
   // 국내 대형주
   "삼성전자":         { s: "005930.KS", n: "삼성전자" },
@@ -169,7 +169,7 @@ var INTL_SEMI_STOCKS = [
 ];
 
 var INTL_SEMI_EXTRA = [
-  { s: "KYOCF", n: "키오시아" },
+  { s: "285A.T", n: "키오시아" },
 ];
 
 var US_TECH_STOCKS = [
@@ -398,10 +398,11 @@ function commasFloat(n) {
 // ── 단일 종목 포맷 ────────────────────────────────────────────────────
 function formatQuote(info, displayName) {
   var isKRW   = (info.currency === "KRW");
+  var isJPY   = (info.currency === "JPY");
   var isIndex = (info.symbol.charAt(0) === "^");
   var arrow   = info.change >= 0 ? "▲" : "▼";
   var sign    = info.change >= 0 ? "+" : "";
-  var dispSym = info.symbol.replace(/\.(KS|KQ)$/, "").replace(/^\^/, "");
+  var dispSym = info.symbol.replace(/\.(KS|KQ|T)$/, "").replace(/^\^/, "");
   var name    = displayName || info.name;
 
   var priceStr, chgStr, prevStr;
@@ -409,6 +410,10 @@ function formatQuote(info, displayName) {
     priceStr = "₩" + commasInt(info.price);
     chgStr   = sign + commasInt(info.change);
     prevStr  = "₩" + commasInt(info.prevClose);
+  } else if (isJPY) {
+    priceStr = "¥" + commasInt(info.price);
+    chgStr   = sign + commasInt(info.change);
+    prevStr  = "¥" + commasInt(info.prevClose);
   } else if (isIndex) {
     priceStr = commasFloat(info.price);
     chgStr   = sign + commasFloat(Math.abs(info.change));
@@ -460,9 +465,12 @@ function sectorLine(item) {
   var info = fetchQuote(item.s);
   if (!info) return item.n + "  -";
   var isKRW  = (info.currency === "KRW");
+  var isJPY  = (info.currency === "JPY");
   var arrow  = info.change >= 0 ? "▲" : "▽";
   var pct    = Math.abs(info.changePct).toFixed(2) + "%";
-  var price  = isKRW ? commasInt(info.price) : "$" + commasFloat(info.price);
+  var price  = isKRW ? commasInt(info.price)
+             : isJPY ? "¥" + commasInt(info.price)
+             : "$" + commasFloat(info.price);
   return item.n + "  " + price + " (" + arrow + pct + ")";
 }
 
