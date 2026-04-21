@@ -566,13 +566,8 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       return;
     }
 
-    // 미주 멘탈케어 스터디 → 삼하마샌 (100자 이상 + 키워드)
-    // 디버그: 방 이름 확인용 (동작 확인 후 아래 3줄 삭제)
-    if (room.indexOf("멘탈") !== -1 && !sent["__dbg__minju"]) {
-      sent["__dbg__minju"] = true;
-      sendToRoom("삼하마샌", "[디버그] 멘탈케어방 감지 room='" + room + "' len=" + msg.length);
-    }
-    if (room === "미주 멘탈케어 스터디!" && msg.length >= 100) {
+    // 미주스터디 → 삼하마샌 (100자 이상 + 키워드)
+    if (room === "미주스터디" && msg.length >= 100) {
       var msgLowerK = msg.toLowerCase();
       var hasKw = KEYWORDS.some(function(kw) {
         return msgLowerK.indexOf(kw.toLowerCase()) !== -1;
