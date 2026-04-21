@@ -379,18 +379,93 @@ function extractYoutubeUrl(msg) {
   return m ? m[0] : null;
 }
 
-// ── Gemini로 YouTube 영상 요약 ────────────────────────────────────────
+// ── YouTube 영상 ID 추출 ──────────────────────────────────────────────
+function getVideoId(ytUrl) {
+  var m = ytUrl.match(/(?:v=|youtu\.be\/|shorts\/)([A-Za-z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
+// ── JSON 배열 추출 (중첩 브라켓 처리) ────────────────────────────────
+function extractJsonArray(str, key) {
+  var idx = str.indexOf('"' + key + '":[');
+  if (idx === -1) return null;
+  var start = str.indexOf('[', idx);
+  if (start === -1) return null;
+  var depth = 0;
+  for (var i = start; i < str.length; i++) {
+    if (str[i] === '[') depth++;
+    else if (str[i] === ']') {
+      if (--depth === 0) return str.substring(start, i + 1);
+    }
+  }
+  return null;
+}
+
+// ── YouTube 자막 가져오기 ─────────────────────────────────────────────
+function fetchYoutubeTranscript(videoId) {
+  try {
+    var html = httpGetWithHeaders(
+      "https://www.youtube.com/watch?v=" + videoId,
+      { "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.8" }
+    );
+    if (!html) return null;
+
+    var tracksJson = extractJsonArray(html, "captionTracks");
+    if (!tracksJson) return null;
+
+    var tracks = JSON.parse(tracksJson);
+    if (!tracks || !tracks.length) return null;
+
+    // 한국어 > 영어 > 첫 번째 자막 순으로 선택
+    var trackUrl = null;
+    for (var i = 0; i < tracks.length; i++) {
+      if (tracks[i].languageCode === "ko") { trackUrl = tracks[i].baseUrl; break; }
+    }
+    if (!trackUrl) for (var i = 0; i < tracks.length; i++) {
+      if (tracks[i].languageCode === "en") { trackUrl = tracks[i].baseUrl; break; }
+    }
+    if (!trackUrl) trackUrl = tracks[0].baseUrl;
+
+    var json3 = httpGet(trackUrl + "&fmt=json3");
+    if (!json3) return null;
+
+    var data = JSON.parse(json3);
+    var parts = [];
+    var events = data.events || [];
+    for (var i = 0; i < events.length; i++) {
+      var segs = events[i].segs;
+      if (!segs) continue;
+      var chunk = "";
+      for (var j = 0; j < segs.length; j++) {
+        if (segs[j].utf8) chunk += segs[j].utf8;
+      }
+      chunk = chunk.replace(/\n/g, " ").trim();
+      if (chunk) parts.push(chunk);
+    }
+
+    var transcript = parts.join(" ");
+    return transcript.length > 10000 ? transcript.substring(0, 10000) : transcript;
+  } catch(e) { return null; }
+}
+
+// ── Gemini로 YouTube 영상 요약 (자막 기반) ───────────────────────────
 function summarizeYoutube(ytUrl) {
   try {
+    var videoId = getVideoId(ytUrl);
+    if (!videoId) return "⚠️ 유효하지 않은 YouTube URL";
+
+    var transcript = fetchYoutubeTranscript(videoId);
+    if (!transcript) return "⚠️ 자막이 없는 영상입니다.";
+
     var apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + GEMINI_API_KEY;
     var reqBody = JSON.stringify({
       contents: [{
-        parts: [
-          { fileData: { mimeType: "video/youtube", fileUri: ytUrl } },
-          { text: "이 영상의 핵심 내용을 한국어로 요약해줘. 주제, 주요 포인트 3~5개, 결론 순서로 간결하게 정리해줘." }
-        ]
+        parts: [{
+          text: "다음은 YouTube 영상의 자막입니다. 핵심 내용을 한국어로 요약해줘. 주제, 주요 포인트 3~5개, 결론 순서로 간결하게 정리해줘.\n\n" + transcript
+        }]
       }]
     });
+
     var raw = httpPost(apiUrl, reqBody);
     if (!raw) return "⚠️ API 응답 없음";
     var resp = JSON.parse(raw);
