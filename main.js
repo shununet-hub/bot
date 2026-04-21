@@ -318,6 +318,27 @@ function searchKrSymbol(query) {
     }
   } catch (e) { /* 2차도 실패 */ }
 
+  // 3차: 네이버 모바일 검색 API
+  try {
+    var raw3 = httpGetWithHeaders(
+      "https://m.stock.naver.com/api/search/all?keyword=" + urlEncode(query) + "&page=1&pageSize=5",
+      { "Referer": "https://m.stock.naver.com/", "Accept": "application/json" }
+    );
+    if (raw3) {
+      var data3 = JSON.parse(raw3);
+      var stocks3 = (data3.stocks && data3.stocks.items) ? data3.stocks.items
+                  : (data3.items ? data3.items : null);
+      if (stocks3 && stocks3.length) {
+        var it3 = stocks3[0];
+        var code3 = String(it3.itemCode || it3.code || "").trim();
+        var mkt3  = String(it3.stockExchangeType || it3.market || "");
+        if (/^\d{6}$/.test(code3)) {
+          return code3 + ((mkt3.indexOf("KOSDAQ") !== -1 || mkt3.indexOf("코스닥") !== -1) ? ".KQ" : ".KS");
+        }
+      }
+    }
+  } catch (e3) { /* 3차도 실패 */ }
+
   return null;
 }
 
@@ -365,27 +386,42 @@ function getYFAuth() {
 
 // ── 네이버 주가 조회 (국내 소형주 fallback) ──────────────────────────
 function fetchNaverQuote(code, fallbackSymbol) {
-  var raw = httpGetWithHeaders(
-    "https://m.stock.naver.com/api/stock/" + code + "/basic",
-    { "Referer": "https://m.stock.naver.com/", "Accept": "application/json" }
-  );
-  if (!raw) return null;
+  // 1차: polling 실시간 API
   try {
-    var d = JSON.parse(raw);
-    var price  = parseFloat(String(d.closePrice || "").replace(/,/g, ""));
-    var change = parseFloat(String(d.compareToPreviousClosePrice || "0").replace(/,/g, "").replace(/\+/g, ""));
-    var pct    = parseFloat(String(d.fluctuationsRatio || "0").replace(/\+/g, ""));
-    if (!price) return null;
-    return {
-      symbol:    fallbackSymbol || (code + ".KS"),
-      name:      d.stockName || code,
-      price:     price,
-      prevClose: price - change,
-      change:    change,
-      changePct: pct,
-      currency:  "KRW"
-    };
-  } catch(e) { return null; }
+    var raw1 = httpGetWithHeaders(
+      "https://polling.finance.naver.com/api/realtime/domestic/stock/" + code,
+      { "Referer": "https://finance.naver.com/", "Accept": "application/json" }
+    );
+    if (raw1) {
+      var d1 = JSON.parse(raw1);
+      var stock = (d1.datas && d1.datas.length) ? d1.datas[0] : null;
+      if (stock) {
+        var p1 = parseFloat(String(stock.nv || stock.sv || "").replace(/,/g, ""));
+        var c1 = parseFloat(String(stock.cv || "0").replace(/,/g, "").replace(/\+/g, ""));
+        var r1 = parseFloat(String(stock.cr || "0").replace(/\+/g, ""));
+        if (p1) return { symbol: fallbackSymbol || (code + ".KS"), name: stock.nm || code,
+          price: p1, prevClose: p1 - c1, change: c1, changePct: r1, currency: "KRW" };
+      }
+    }
+  } catch(e1) {}
+
+  // 2차: mobile basic API (다양한 필드명 시도)
+  try {
+    var raw2 = httpGetWithHeaders(
+      "https://m.stock.naver.com/api/stock/" + code + "/basic",
+      { "Referer": "https://m.stock.naver.com/", "Accept": "application/json" }
+    );
+    if (raw2) {
+      var d2 = JSON.parse(raw2);
+      var p2 = parseFloat(String(d2.closePrice || d2.currentPrice || d2.stockPrice || "").replace(/,/g, ""));
+      var c2 = parseFloat(String(d2.compareToPreviousClosePrice || d2.changePrice || d2.priceChange || "0").replace(/,/g, "").replace(/\+/g, ""));
+      var r2 = parseFloat(String(d2.fluctuationsRatio || d2.changeRate || d2.rateOfChange || "0").replace(/\+/g, ""));
+      if (p2) return { symbol: fallbackSymbol || (code + ".KS"), name: d2.stockName || d2.name || code,
+        price: p2, prevClose: p2 - c2, change: c2, changePct: r2, currency: "KRW" };
+    }
+  } catch(e2) {}
+
+  return null;
 }
 
 // ── Yahoo Finance 시세 일괄 조회 (섹터용) ────────────────────────────
@@ -665,9 +701,9 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       return;
     }
 
-    // ── 디버그: 모든 카톡 방 이름 찍기 ──
+    // ── 디버그: 트럼프/미주 방 이름 확인 ──
     if (room.indexOf("트럼프") !== -1 || room.indexOf("미주") !== -1) {
-      sendToRoom("삼하마샌", "[디버그] room=\"" + room + "\" sender=\"" + sender + "\"");
+      replier.reply("[디버그] room=" + room + " sender=" + sender);
     }
 
     // 트럼프뉴스 → 삼하마샌 (키워드 무관, 모든 메시지)
