@@ -382,7 +382,7 @@ function extractYoutubeUrl(msg) {
 // ── Gemini로 YouTube 영상 요약 ────────────────────────────────────────
 function summarizeYoutube(ytUrl) {
   try {
-    var apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-latest:generateContent?key=" + GEMINI_API_KEY;
+    var apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + GEMINI_API_KEY;
     var reqBody = JSON.stringify({
       contents: [{
         parts: [
@@ -794,16 +794,22 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       var targetSess = sent["__session__사또밥"] || sent["__session__삼하마샌"];
 
       if (isFromTrump && msg.length > 5) {
-        var key2 = msg.substring(0, 100).replace(/\s/g, "");
-        if (!sent[key2]) {
-          sent[key2] = true;
-          if (targetSess) targetSess.reply(msg);
-          else Api.replyRoom("삼하마샌", msg);
+        var msgLowerT = msg.toLowerCase();
+        var hasKwT = KEYWORDS.some(function(kw) {
+          return msgLowerT.indexOf(kw.toLowerCase()) !== -1;
+        });
+        if (hasKwT) {
+          var key2 = msg.substring(0, 100).replace(/\s/g, "");
+          if (!sent[key2]) {
+            sent[key2] = true;
+            if (targetSess) targetSess.reply(msg);
+            else Api.replyRoom("삼하마샌", msg);
+          }
         }
         return;
       }
 
-      if (isFromMiju && msg.length >= 100) {
+      if (isFromMiju && msg.length >= 150) {
         var msgLowerK = msg.toLowerCase();
         var hasKw = KEYWORDS.some(function(kw) {
           return msgLowerK.indexOf(kw.toLowerCase()) !== -1;
