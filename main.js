@@ -6,6 +6,7 @@ var _yfAuthTs = 0;
 var LOOKUP = {
   "지수":       "__ALL_INDICES__",
   "유가":       "__OILPRICE__",
+  "반도체":     "__SEMI_COMBINED__",
   "한국반도체": "__KR_SEMI__",
   "해외반도체": "__INTL_SEMI__",
   "미국기술주": "__US_TECH__",
@@ -487,13 +488,36 @@ function buildSectorMsg(title, stocks, extra, useTicker, footer) {
   return lines.join("\n");
 }
 
+// ── /반도체 (한국 TOP5 + 해외 통합) ──────────────────────────────────
+function fetchCombinedSemi() {
+  var kr = ["🇰🇷 한국 반도체 시세\n"];
+  for (var i = 0; i < 5 && i < KR_SEMI_STOCKS.length; i++) {
+    kr.push(sectorLine(KR_SEMI_STOCKS[i], false));
+  }
+
+  var intl = ["🌐 해외 반도체 시세\n"];
+  for (var j = 0; j < INTL_SEMI_STOCKS.length; j++) {
+    intl.push(sectorLine(INTL_SEMI_STOCKS[j], true));
+  }
+  if (INTL_SEMI_EXTRA.length) {
+    intl.push("");
+    for (var k = 0; k < INTL_SEMI_EXTRA.length; k++) {
+      intl.push(sectorLine(INTL_SEMI_EXTRA[k], true));
+    }
+  }
+  intl.push("\n(본장시간 외 종가로 표기)");
+
+  return kr.join("\n") + "\n\n" + intl.join("\n");
+}
+
 // ── /명령 처리 ────────────────────────────────────────────────────────
 function handleSlash(query, replier) {
   var entry = LOOKUP[query];
 
-  if (entry === "__ALL_INDICES__") { replier.reply(fetchAllIndices()); return; }
-  if (entry === "__OILPRICE__")    { replier.reply(fetchOilPrice());   return; }
-  if (entry === "__KR_SEMI__")     { replier.reply(buildSectorMsg("🇰🇷 한국 반도체 시세", KR_SEMI_STOCKS, null, false, null)); return; }
+  if (entry === "__ALL_INDICES__")   { replier.reply(fetchAllIndices());   return; }
+  if (entry === "__OILPRICE__")      { replier.reply(fetchOilPrice());     return; }
+  if (entry === "__SEMI_COMBINED__") { replier.reply(fetchCombinedSemi()); return; }
+  if (entry === "__KR_SEMI__")       { replier.reply(buildSectorMsg("🇰🇷 한국 반도체 시세", KR_SEMI_STOCKS, null, false, null)); return; }
   if (entry === "__INTL_SEMI__")   { replier.reply(buildSectorMsg("🌐 해외 반도체 시세", INTL_SEMI_STOCKS, INTL_SEMI_EXTRA, true, "(본장시간 외 종가로 표기)")); return; }
   if (entry === "__US_TECH__")     { replier.reply(buildSectorMsg("🇺🇸 미국 기술주 시세", US_TECH_STOCKS, null, false, "(본장시간 외 종가로 표기)")); return; }
 
