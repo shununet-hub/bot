@@ -1,6 +1,7 @@
 var sent = {};
 var _yfAuth = null;
 var _yfAuthTs = 0;
+var GEMINI_API_KEY = "여기에_Gemini_API_키_입력";
 
 // ── 종목 룩업: { s: 심볼, n: 표시명 } 또는 특수 문자열 ───────────────
 var LOOKUP = {
@@ -231,6 +232,33 @@ function httpGetWithHeaders(url, extraHeaders) {
   }
 }
 
+// ── HTTP POST (Gemini API 용) ─────────────────────────────────────────
+function httpPost(url, jsonBody) {
+  try {
+    var jURL = new java.net.URL(url);
+    var conn = jURL.openConnection();
+    conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+    conn.setRequestProperty("User-Agent", "Mozilla/5.0");
+    conn.setConnectTimeout(15000);
+    conn.setReadTimeout(90000);
+    conn.setDoOutput(true);
+    var bytes = new java.lang.String(jsonBody).getBytes("UTF-8");
+    var os = conn.getOutputStream();
+    os.write(bytes);
+    os.flush();
+    os.close();
+    var stream;
+    try { stream = conn.getInputStream(); } catch(e2) { stream = conn.getErrorStream(); }
+    if (!stream) return null;
+    var reader = new java.io.BufferedReader(new java.io.InputStreamReader(stream, "UTF-8"));
+    var sb = new java.lang.StringBuilder();
+    var line;
+    while ((line = reader.readLine()) !== null) sb.append(line);
+    reader.close();
+    return sb.toString();
+  } catch(e) { return null; }
+}
+
 // ── 특정 방으로 메시지 전송 (세션 replier 우선, 3000자 단위 분할) ─────
 function sendToRoom(roomName, message) {
   var MAX = 3000;
@@ -343,6 +371,37 @@ function searchKrSymbol(query) {
   } catch (e3) { /* 3차도 실패 */ }
 
   return null;
+}
+
+// ── YouTube URL 추출 ─────────────────────────────────────────────────
+function extractYoutubeUrl(msg) {
+  var m = msg.match(/https?:\/\/(?:(?:www\.)?youtube\.com\/(?:watch\?[^\s)]*|shorts\/[^\s)]*)|youtu\.be\/[^\s)]*)/);
+  return m ? m[0] : null;
+}
+
+// ── Gemini로 YouTube 영상 요약 ────────────────────────────────────────
+function summarizeYoutube(ytUrl) {
+  try {
+    var apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + GEMINI_API_KEY;
+    var reqBody = JSON.stringify({
+      contents: [{
+        parts: [
+          { fileData: { mimeType: "video/mp4", fileUri: ytUrl } },
+          { text: "이 영상의 핵심 내용을 한국어로 요약해줘. 주제, 주요 포인트 3~5개, 결론 순서로 간결하게 정리해줘." }
+        ]
+      }]
+    });
+    var raw = httpPost(apiUrl, reqBody);
+    if (!raw) return "❌ API 응답 없음";
+    var resp = JSON.parse(raw);
+    if (resp.error) return "❌ " + (resp.error.message || "API 오류");
+    var text = resp.candidates && resp.candidates[0] &&
+               resp.candidates[0].content &&
+               resp.candidates[0].content.parts &&
+               resp.candidates[0].content.parts[0] &&
+               resp.candidates[0].content.parts[0].text;
+    return text || "❌ 요약 실패";
+  } catch(e) { return "❌ 오류: " + String(e); }
 }
 
 // ── Yahoo Finance crumb 인증 ──────────────────────────────────────────
@@ -702,6 +761,17 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       var cmd = msg.trim().slice(1).toLowerCase();
       handleSlash(cmd, replier);
       return;
+    }
+
+    // ── YouTube 링크 자동 요약 ──
+    var ytUrl = extractYoutubeUrl(msg);
+    if (ytUrl) {
+      var ytKey = "yt_" + ytUrl.slice(-20);
+      if (!sent[ytKey]) {
+        sent[ytKey] = true;
+        replier.reply("🎬 영상 분석 중...");
+        replier.reply("📝 요약\n\n" + summarizeYoutube(ytUrl));
+      }
     }
 
     // ── 트럼프/미주 방 → 삼하마샌 전달 ──
