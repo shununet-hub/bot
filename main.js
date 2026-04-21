@@ -2,8 +2,11 @@ var sent = {};
 
 // ── 종목 룩업: { s: 심볼, n: 표시명 } 또는 특수 문자열 ───────────────
 var LOOKUP = {
-  "지수":     "__ALL_INDICES__",
-  "유가":     "__OILPRICE__",
+  "지수":       "__ALL_INDICES__",
+  "유가":       "__OILPRICE__",
+  "한국반도체": "__KR_SEMI__",
+  "해외반도체": "__INTL_SEMI__",
+  "미국기술주": "__US_TECH__",
 
   // 지수
   "코스피":   { s: "^KS11",  n: "코스피" },
@@ -107,6 +110,11 @@ var LOOKUP = {
   "코리아써키트":     { s: "007810.KS", n: "코리아써키트" },
   "삼성전기우":       { s: "009155.KS", n: "삼성전기우" },
 
+  // 반도체 추가
+  "한화엔진":         { s: "272210.KS", n: "한화엔진" },
+  "오이솔루션":       { s: "138080.KQ", n: "오이솔루션" },
+  "db하이텍":         { s: "000990.KS", n: "DB하이텍" },
+
   // 방산·에너지·조선
   "stx엔진":          { s: "077970.KS", n: "STX엔진" },
   "hd현대마린엔진":   { s: "082740.KS", n: "HD현대마린엔진" },
@@ -133,6 +141,43 @@ var ALL_INDICES = [
   { label: "S&P500",   symbol: "^GSPC" },
   { label: "다우",     symbol: "^DJI"  },
   { label: "러셀2000", symbol: "^RUT"  },
+];
+
+var KR_SEMI_STOCKS = [
+  { s: "005930.KS", n: "삼성전자" },
+  { s: "000660.KS", n: "SK하이닉스" },
+  { s: "009150.KS", n: "삼성전기" },
+  { s: "042700.KS", n: "한미반도체" },
+  { s: "000990.KS", n: "DB하이텍" },
+  { s: "058470.KQ", n: "리노공업" },
+  { s: "240810.KQ", n: "원익IPS" },
+];
+
+var INTL_SEMI_STOCKS = [
+  { s: "NVDA",  n: "NVIDIA" },
+  { s: "TSM",   n: "TSMC" },
+  { s: "AVGO",  n: "Broadcom" },
+  { s: "QCOM",  n: "Qualcomm" },
+  { s: "AMAT",  n: "Applied Materials" },
+  { s: "MU",    n: "Micron" },
+  { s: "KLAC",  n: "KLA" },
+];
+
+var INTL_SEMI_EXTRA = [
+  { s: "KYOCF", n: "키오시아" },
+];
+
+var US_TECH_STOCKS = [
+  { s: "AAPL",  n: "Apple" },
+  { s: "MSFT",  n: "Microsoft" },
+  { s: "NVDA",  n: "NVIDIA" },
+  { s: "GOOGL", n: "Alphabet" },
+  { s: "AMZN",  n: "Amazon" },
+  { s: "META",  n: "Meta" },
+  { s: "TSLA",  n: "Tesla" },
+  { s: "AVGO",  n: "Broadcom" },
+  { s: "NFLX",  n: "Netflix" },
+  { s: "ORCL",  n: "Oracle" },
 ];
 
 // ── URL 인코딩 ────────────────────────────────────────────────────────
@@ -359,18 +404,48 @@ function fetchOilPrice() {
   return oilLine("WTI", "CL=F") + "\n" + oilLine("브렌트유", "BZ=F");
 }
 
+// ── 섹터 요약 ─────────────────────────────────────────────────────────
+function sectorLine(item) {
+  var info = fetchQuote(item.s);
+  if (!info) return item.n + "  -";
+  var isKRW  = (info.currency === "KRW");
+  var arrow  = info.change >= 0 ? "▲" : "▽";
+  var pct    = Math.abs(info.changePct).toFixed(2) + "%";
+  var price  = isKRW ? commasInt(info.price) : "$" + commasFloat(info.price);
+  return item.n + "  " + price + " (" + arrow + pct + ")";
+}
+
+function buildSectorMsg(title, stocks, extra) {
+  var lines = [title + "\n"];
+  for (var i = 0; i < stocks.length; i++) lines.push(sectorLine(stocks[i]));
+  if (extra && extra.length) {
+    lines.push("");
+    for (var j = 0; j < extra.length; j++) lines.push(sectorLine(extra[j]));
+  }
+  return lines.join("\n");
+}
+
 // ── /명령 처리 ────────────────────────────────────────────────────────
 function handleSlash(query, replier) {
   var entry = LOOKUP[query];
 
   if (entry === "__ALL_INDICES__") { replier.reply(fetchAllIndices()); return; }
   if (entry === "__OILPRICE__")    { replier.reply(fetchOilPrice());   return; }
+  if (entry === "__KR_SEMI__")     { replier.reply(buildSectorMsg("🇰🇷 한국 반도체 시세", KR_SEMI_STOCKS, null)); return; }
+  if (entry === "__INTL_SEMI__")   { replier.reply(buildSectorMsg("🌐 해외 반도체 시세", INTL_SEMI_STOCKS, INTL_SEMI_EXTRA)); return; }
+  if (entry === "__US_TECH__")     { replier.reply(buildSectorMsg("🇺🇸 미국 기술주 시세", US_TECH_STOCKS, null)); return; }
 
   var symbol, displayName;
 
   if (entry) {
     symbol      = entry.s;
     displayName = entry.n;
+  } else if (/^\d{6}$/.test(query)) {
+    // 6자리 종목코드 직접 입력
+    var ksInfo = fetchQuote(query + ".KS");
+    if (ksInfo) { replier.reply(formatQuote(ksInfo, null)); return; }
+    symbol      = query + ".KQ";
+    displayName = null;
   } else if (/[가-힣]/.test(query)) {
     // 한글 → 네이버(1차) + Yahoo KR(2차) 검색
     symbol = searchKrSymbol(query);
