@@ -146,11 +146,11 @@ var ALL_INDICES = [
 var KR_SEMI_STOCKS = [
   { s: "005930.KS", n: "삼성전자" },
   { s: "000660.KS", n: "SK하이닉스" },
-  { s: "009150.KS", n: "삼성전기" },
+  { s: "402340.KS", n: "SK스퀘어" },
   { s: "042700.KS", n: "한미반도체" },
-  { s: "000990.KS", n: "DB하이텍" },
   { s: "058470.KQ", n: "리노공업" },
-  { s: "240810.KQ", n: "원익IPS" },
+  { s: "403870.KQ", n: "HPSP" },
+  { s: "000990.KS", n: "DB하이텍" },
 ];
 
 var INTL_SEMI_STOCKS = [
@@ -320,8 +320,9 @@ function fetchQuote(symbol) {
     if (!data.chart || !data.chart.result || !data.chart.result[0]) return null;
     var meta = data.chart.result[0].meta;
     var price = meta.regularMarketPrice;
-    var prev  = meta.chartPreviousClose || meta.previousClose;
-    if (!price || !prev) return null;
+    var prev  = meta.chartPreviousClose || meta.regularMarketPreviousClose || meta.previousClose;
+    if (!price) return null;
+    if (!prev) prev = price;
     var change = price - prev;
     return {
       symbol:    meta.symbol || symbol,
@@ -496,8 +497,8 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
   var KEYWORDS = [
     "sndk", "mu", "micron", "마이크론",
     "fsly", "fastly", "viav", "crcl", "rklb", "pl",
-    "삼성전자", "sk하이닉스", "하이닉스",
-    "폼팩터", "버노바", "베르노바",
+    "삼성전자", "sk하이닉스", "하이닉스", "로켓랩", "플래닛랩스",
+    "폼팩터", "버노바", "베르노바", "패슬리", "패스틀리",
     "form", "klac", "gev", "aaoi",
     "nvda", "엔비디아", "nvidia", "tsmc", "avgo",
     "샌디스크", "wd", "western digital",
@@ -506,8 +507,8 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
     "키오시아", "키옥시아",
     "cpu", "gpu", "젠슨황", "jensen huang",
     "openai", "chatgpt",
-    "claude", "anthropic", "앤트로픽", "엔트로픽",
-    "kalc", "kal", "crdo"
+    "claude", "anthropic", "앤트로픽", "엔트로픽", "클로드",
+    "kalc", "kal", "crdo", "크리도"
   ];
 
   var matched = KEYWORDS.some(function(kw) {
