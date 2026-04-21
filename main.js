@@ -385,38 +385,77 @@ function getVideoId(ytUrl) {
   return m ? m[1] : null;
 }
 
-// ── JSON 배열 추출 (중첩 브라켓 처리) ────────────────────────────────
-function extractJsonArray(str, key) {
-  var idx = str.indexOf('"' + key + '":[');
-  if (idx === -1) return null;
-  var start = str.indexOf('[', idx);
-  if (start === -1) return null;
-  var depth = 0;
-  for (var i = start; i < str.length; i++) {
-    if (str[i] === '[') depth++;
-    else if (str[i] === ']') {
-      if (--depth === 0) return str.substring(start, i + 1);
+// ── 자막 이벤트 파싱 ─────────────────────────────────────────────────
+function parseTranscriptEvents(events) {
+  var parts = [];
+  for (var i = 0; i < events.length; i++) {
+    var segs = events[i].segs;
+    if (!segs) continue;
+    var chunk = "";
+    for (var j = 0; j < segs.length; j++) {
+      if (segs[j].utf8) chunk += segs[j].utf8;
     }
+    chunk = chunk.replace(/\n/g, " ").trim();
+    if (chunk) parts.push(chunk);
   }
-  return null;
+  var transcript = parts.join(" ");
+  if (!transcript) return null;
+  return transcript.length > 10000 ? transcript.substring(0, 10000) : transcript;
 }
 
 // ── YouTube 자막 가져오기 ─────────────────────────────────────────────
 function fetchYoutubeTranscript(videoId) {
+  // 1차: timedtext API 직접 호출 (한국어/영어/자동생성 순)
+  var candidates = [
+    "https://www.youtube.com/api/timedtext?v=" + videoId + "&lang=ko&fmt=json3",
+    "https://www.youtube.com/api/timedtext?v=" + videoId + "&lang=en&fmt=json3",
+    "https://www.youtube.com/api/timedtext?v=" + videoId + "&lang=ko&kind=asr&fmt=json3",
+    "https://www.youtube.com/api/timedtext?v=" + videoId + "&lang=en&kind=asr&fmt=json3",
+  ];
+  for (var a = 0; a < candidates.length; a++) {
+    try {
+      var raw = httpGetWithHeaders(candidates[a], { "Referer": "https://www.youtube.com/" });
+      if (!raw || raw.length < 30) continue;
+      var data = JSON.parse(raw);
+      if (!data.events || !data.events.length) continue;
+      var result = parseTranscriptEvents(data.events);
+      if (result) return result;
+    } catch(e) {}
+  }
+
+  // 2차: 페이지 HTML에서 captionTracks 파싱 (타임아웃 길게, CONSENT 쿠키 포함)
   try {
-    var html = httpGetWithHeaders(
-      "https://www.youtube.com/watch?v=" + videoId,
-      { "Accept-Language": "ko-KR,ko;q=0.9,en;q=0.8" }
-    );
-    if (!html) return null;
+    var jURL = new java.net.URL("https://www.youtube.com/watch?v=" + videoId);
+    var conn = jURL.openConnection();
+    conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
+    conn.setRequestProperty("Accept-Language", "ko-KR,ko;q=0.9,en;q=0.8");
+    conn.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+    conn.setRequestProperty("Cookie", "CONSENT=YES+cb; YSC=1; VISITOR_INFO1_LIVE=1");
+    conn.setConnectTimeout(10000);
+    conn.setReadTimeout(15000);
+    var reader2 = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream(), "UTF-8"));
+    var sb2 = new java.lang.StringBuilder();
+    var line2;
+    while ((line2 = reader2.readLine()) !== null) sb2.append(line2);
+    reader2.close();
+    var html = sb2.toString();
 
-    var tracksJson = extractJsonArray(html, "captionTracks");
-    if (!tracksJson) return null;
+    // "captionTracks":[ 또는 "captionTracks": [ 둘 다 처리
+    var idx = html.indexOf('"captionTracks":[');
+    if (idx === -1) idx = html.indexOf('"captionTracks": [');
+    if (idx === -1) return null;
+    var start = html.indexOf('[', idx);
+    var depth = 0;
+    var end = -1;
+    for (var i = start; i < html.length; i++) {
+      if (html[i] === '[') depth++;
+      else if (html[i] === ']') { if (--depth === 0) { end = i; break; } }
+    }
+    if (end === -1) return null;
 
-    var tracks = JSON.parse(tracksJson);
+    var tracks = JSON.parse(html.substring(start, end + 1));
     if (!tracks || !tracks.length) return null;
 
-    // 한국어 > 영어 > 첫 번째 자막 순으로 선택
     var trackUrl = null;
     for (var i = 0; i < tracks.length; i++) {
       if (tracks[i].languageCode === "ko") { trackUrl = tracks[i].baseUrl; break; }
@@ -428,23 +467,8 @@ function fetchYoutubeTranscript(videoId) {
 
     var json3 = httpGet(trackUrl + "&fmt=json3");
     if (!json3) return null;
-
-    var data = JSON.parse(json3);
-    var parts = [];
-    var events = data.events || [];
-    for (var i = 0; i < events.length; i++) {
-      var segs = events[i].segs;
-      if (!segs) continue;
-      var chunk = "";
-      for (var j = 0; j < segs.length; j++) {
-        if (segs[j].utf8) chunk += segs[j].utf8;
-      }
-      chunk = chunk.replace(/\n/g, " ").trim();
-      if (chunk) parts.push(chunk);
-    }
-
-    var transcript = parts.join(" ");
-    return transcript.length > 10000 ? transcript.substring(0, 10000) : transcript;
+    var data2 = JSON.parse(json3);
+    return parseTranscriptEvents(data2.events || []);
   } catch(e) { return null; }
 }
 
