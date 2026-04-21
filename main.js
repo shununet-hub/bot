@@ -521,6 +521,24 @@ function handleSlash(query, replier) {
   replier.reply(formatQuote(info, displayName));
 }
 
+// ── 전달 키워드 (카카오·텔레그램 공용) ───────────────────────────────
+var KEYWORDS = [
+  "sndk", "mu", "micron", "마이크론",
+  "fsly", "fastly", "viav", "crcl", "rklb", "pl",
+  "삼성전자", "sk하이닉스", "하이닉스", "로켓랩", "플래닛랩스",
+  "폼팩터", "버노바", "베르노바", "패슬리", "패스틀리",
+  "form", "klac", "gev", "aaoi",
+  "nvda", "엔비디아", "nvidia", "tsmc", "avgo",
+  "샌디스크", "wd", "western digital",
+  "hbm", "hbm3", "hbm4", "nand", "낸드", "dram", "디램",
+  "반도체", "ai인프라", "hbf",
+  "키오시아", "키옥시아",
+  "cpu", "gpu", "젠슨황", "jensen huang",
+  "openai", "chatgpt",
+  "claude", "anthropic", "앤트로픽", "엔트로픽", "클로드",
+  "kalc", "kal", "crdo", "크리도"
+];
+
 // ── 메인 ─────────────────────────────────────────────────────────────
 function response(room, msg, sender, isGroupChat, replier, imageDB, packageName) {
 
@@ -535,36 +553,38 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       return;
     }
 
-    if (room === "트럼프뉴스" && msg.indexOf("트럼프") !== -1) {
+    // 트럼프뉴스 → 삼하마샌 (키워드 무관, 모든 메시지)
+    if (room === "트럼프뉴스" && msg.length > 5) {
       var key2 = msg.substring(0, 100).replace(/\s/g, "");
       if (!sent[key2]) {
         sent[key2] = true;
         sendToRoom("삼하마샌", msg);
       }
+      return;
     }
+
+    // 미주 멘탈케어 스터디 → 삼하마샌 (150자 이상 + 키워드)
+    if (room === "미주 멘탈케어 스터디!" && msg.length >= 150) {
+      var msgLowerK = msg.toLowerCase();
+      var hasKw = KEYWORDS.some(function(kw) {
+        return msgLowerK.indexOf(kw.toLowerCase()) !== -1;
+      });
+      if (hasKw) {
+        var key3 = msg.substring(0, 100).replace(/\s/g, "");
+        if (!sent[key3]) {
+          sent[key3] = true;
+          sendToRoom("삼하마샌", msg);
+        }
+      }
+      return;
+    }
+
     return;
   }
 
   if (packageName !== "org.telegram.messenger") return;
 
   var msgLower = msg.toLowerCase();
-
-  var KEYWORDS = [
-    "sndk", "mu", "micron", "마이크론",
-    "fsly", "fastly", "viav", "crcl", "rklb", "pl",
-    "삼성전자", "sk하이닉스", "하이닉스", "로켓랩", "플래닛랩스",
-    "폼팩터", "버노바", "베르노바", "패슬리", "패스틀리",
-    "form", "klac", "gev", "aaoi",
-    "nvda", "엔비디아", "nvidia", "tsmc", "avgo",
-    "샌디스크", "wd", "western digital",
-    "hbm", "hbm3", "hbm4", "nand", "낸드", "dram", "디램",
-    "반도체", "ai인프라", "hbf",
-    "키오시아", "키옥시아",
-    "cpu", "gpu", "젠슨황", "jensen huang",
-    "openai", "chatgpt",
-    "claude", "anthropic", "앤트로픽", "엔트로픽", "클로드",
-    "kalc", "kal", "crdo", "크리도"
-  ];
 
   var matched = KEYWORDS.some(function(kw) {
     return msgLower.indexOf(kw.toLowerCase()) !== -1;
