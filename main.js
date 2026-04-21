@@ -157,10 +157,13 @@ var INTL_SEMI_STOCKS = [
   { s: "NVDA",  n: "NVIDIA" },
   { s: "TSM",   n: "TSMC" },
   { s: "AVGO",  n: "Broadcom" },
+  { s: "AMD",   n: "AMD" },
   { s: "QCOM",  n: "Qualcomm" },
   { s: "AMAT",  n: "Applied Materials" },
   { s: "MU",    n: "Micron" },
   { s: "KLAC",  n: "KLA" },
+  { s: "INTC",  n: "Intel" },
+  { s: "SNDK",  n: "SanDisk" },
 ];
 
 var INTL_SEMI_EXTRA = [
