@@ -1,7 +1,6 @@
 var sent = {};
 var _yfAuth = null;
 var _yfAuthTs = 0;
-var GEMINI_API_KEY = "AIzaSyD3fuG54FjibY9c2r7SD2QnKM-8WkyPU0I";
 
 // ── 종목 룩업: { s: 심볼, n: 표시명 } 또는 특수 문자열 ───────────────
 var LOOKUP = {
@@ -373,136 +372,6 @@ function searchKrSymbol(query) {
   return null;
 }
 
-// ── YouTube URL 추출 ─────────────────────────────────────────────────
-function extractYoutubeUrl(msg) {
-  var m = msg.match(/https?:\/\/(?:(?:www\.)?youtube\.com\/(?:watch\?[^\s)]*|shorts\/[^\s)]*)|youtu\.be\/[^\s)]*)/);
-  return m ? m[0] : null;
-}
-
-// ── YouTube 영상 ID 추출 ──────────────────────────────────────────────
-function getVideoId(ytUrl) {
-  var m = ytUrl.match(/(?:v=|youtu\.be\/|shorts\/)([A-Za-z0-9_-]{11})/);
-  return m ? m[1] : null;
-}
-
-// ── 자막 이벤트 파싱 ─────────────────────────────────────────────────
-function parseTranscriptEvents(events) {
-  var parts = [];
-  for (var i = 0; i < events.length; i++) {
-    var segs = events[i].segs;
-    if (!segs) continue;
-    var chunk = "";
-    for (var j = 0; j < segs.length; j++) {
-      if (segs[j].utf8) chunk += segs[j].utf8;
-    }
-    chunk = chunk.replace(/\n/g, " ").trim();
-    if (chunk) parts.push(chunk);
-  }
-  var transcript = parts.join(" ");
-  if (!transcript) return null;
-  return transcript.length > 10000 ? transcript.substring(0, 10000) : transcript;
-}
-
-// ── YouTube 자막 가져오기 ─────────────────────────────────────────────
-function fetchYoutubeTranscript(videoId) {
-  // 1차: timedtext API 직접 호출 (한국어/영어/자동생성 순)
-  var candidates = [
-    "https://www.youtube.com/api/timedtext?v=" + videoId + "&lang=ko&fmt=json3",
-    "https://www.youtube.com/api/timedtext?v=" + videoId + "&lang=en&fmt=json3",
-    "https://www.youtube.com/api/timedtext?v=" + videoId + "&lang=ko&kind=asr&fmt=json3",
-    "https://www.youtube.com/api/timedtext?v=" + videoId + "&lang=en&kind=asr&fmt=json3",
-  ];
-  for (var a = 0; a < candidates.length; a++) {
-    try {
-      var raw = httpGetWithHeaders(candidates[a], { "Referer": "https://www.youtube.com/" });
-      if (!raw || raw.length < 30) continue;
-      var data = JSON.parse(raw);
-      if (!data.events || !data.events.length) continue;
-      var result = parseTranscriptEvents(data.events);
-      if (result) return result;
-    } catch(e) {}
-  }
-
-  // 2차: 페이지 HTML에서 captionTracks 파싱 (타임아웃 길게, CONSENT 쿠키 포함)
-  try {
-    var jURL = new java.net.URL("https://www.youtube.com/watch?v=" + videoId);
-    var conn = jURL.openConnection();
-    conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
-    conn.setRequestProperty("Accept-Language", "ko-KR,ko;q=0.9,en;q=0.8");
-    conn.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
-    conn.setRequestProperty("Cookie", "CONSENT=YES+cb; YSC=1; VISITOR_INFO1_LIVE=1");
-    conn.setConnectTimeout(10000);
-    conn.setReadTimeout(15000);
-    var reader2 = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream(), "UTF-8"));
-    var sb2 = new java.lang.StringBuilder();
-    var line2;
-    while ((line2 = reader2.readLine()) !== null) sb2.append(line2);
-    reader2.close();
-    var html = sb2.toString();
-
-    // "captionTracks":[ 또는 "captionTracks": [ 둘 다 처리
-    var idx = html.indexOf('"captionTracks":[');
-    if (idx === -1) idx = html.indexOf('"captionTracks": [');
-    if (idx === -1) return null;
-    var start = html.indexOf('[', idx);
-    var depth = 0;
-    var end = -1;
-    for (var i = start; i < html.length; i++) {
-      if (html[i] === '[') depth++;
-      else if (html[i] === ']') { if (--depth === 0) { end = i; break; } }
-    }
-    if (end === -1) return null;
-
-    var tracks = JSON.parse(html.substring(start, end + 1));
-    if (!tracks || !tracks.length) return null;
-
-    var trackUrl = null;
-    for (var i = 0; i < tracks.length; i++) {
-      if (tracks[i].languageCode === "ko") { trackUrl = tracks[i].baseUrl; break; }
-    }
-    if (!trackUrl) for (var i = 0; i < tracks.length; i++) {
-      if (tracks[i].languageCode === "en") { trackUrl = tracks[i].baseUrl; break; }
-    }
-    if (!trackUrl) trackUrl = tracks[0].baseUrl;
-
-    var json3 = httpGet(trackUrl + "&fmt=json3");
-    if (!json3) return null;
-    var data2 = JSON.parse(json3);
-    return parseTranscriptEvents(data2.events || []);
-  } catch(e) { return null; }
-}
-
-// ── Gemini로 YouTube 영상 요약 (자막 기반) ───────────────────────────
-function summarizeYoutube(ytUrl) {
-  try {
-    var videoId = getVideoId(ytUrl);
-    if (!videoId) return "⚠️ 유효하지 않은 YouTube URL";
-
-    var transcript = fetchYoutubeTranscript(videoId);
-    if (!transcript) return "⚠️ 자막이 없는 영상입니다.";
-
-    var apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + GEMINI_API_KEY;
-    var reqBody = JSON.stringify({
-      contents: [{
-        parts: [{
-          text: "다음은 YouTube 영상의 자막입니다. 핵심 내용을 한국어로 요약해줘. 주제, 주요 포인트 3~5개, 결론 순서로 간결하게 정리해줘.\n\n" + transcript
-        }]
-      }]
-    });
-
-    var raw = httpPost(apiUrl, reqBody);
-    if (!raw) return "⚠️ API 응답 없음";
-    var resp = JSON.parse(raw);
-    if (resp.error) return "⚠️ " + (resp.error.message || "API 오류");
-    var text = resp.candidates && resp.candidates[0] &&
-               resp.candidates[0].content &&
-               resp.candidates[0].content.parts &&
-               resp.candidates[0].content.parts[0] &&
-               resp.candidates[0].content.parts[0].text;
-    return text || "⚠️ 요약 실패";
-  } catch(e) { return "⚠️ 오류: " + String(e); }
-}
-
 // ── Yahoo Finance crumb 인증 ──────────────────────────────────────────
 function getYFAuth() {
   if (_yfAuth) return _yfAuth;
@@ -870,17 +739,6 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       var cmd = msg.trim().slice(1).toLowerCase();
       handleSlash(cmd, replier);
       return;
-    }
-
-    // ── YouTube 링크 자동 요약 ──
-    var ytUrl = extractYoutubeUrl(msg);
-    if (ytUrl) {
-      var ytKey = "yt_" + ytUrl.slice(-20);
-      if (!sent[ytKey]) {
-        sent[ytKey] = true;
-        replier.reply("🎬 영상 분석 중...");
-        replier.reply("📝 요약\n\n" + summarizeYoutube(ytUrl));
-      }
     }
 
     // ── 트럼프/미주 방 → 삼하마샌 전달 (소스 방에서 봇 무응답) ──
