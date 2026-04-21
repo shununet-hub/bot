@@ -774,32 +774,22 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       }
     }
 
-    // ── 트럼프/미주 방 → 삼하마샌 전달 ──
+    // ── 트럼프/미주 방 → 삼하마샌 전달 (소스 방에서 봇 무응답) ──
     var isFromTrump = room.indexOf("트럼프") !== -1;
     var isFromMiju  = room.indexOf("미주") !== -1;
 
     if (isFromTrump || isFromMiju) {
-      var TARGET = "삼하마샌";
-      var targetSess = sent["__session__" + TARGET];
+      var targetSess = sent["__session__삼하마샌"];
 
-      // 디버그: 세션 여부 + 방 이름 현재 방에 표시
-      replier.reply("[디버그] room=" + room + " | 삼하마샌세션=" + (targetSess ? "있음" : "없음★"));
-
-      // 트럼프방: 조건 없이 전달
       if (isFromTrump && msg.length > 5) {
         var key2 = msg.substring(0, 100).replace(/\s/g, "");
-        if (!sent[key2]) {
+        if (!sent[key2] && targetSess) {
           sent[key2] = true;
-          if (targetSess) {
-            targetSess.reply(msg);
-          } else {
-            replier.reply("[전달실패] 삼하마샌 세션 없음. 삼하마샌에서 아무 메시지나 보내면 다시 활성화됩니다.");
-          }
+          targetSess.reply(msg);
         }
         return;
       }
 
-      // 미주방: 100자 이상 + 키워드
       if (isFromMiju && msg.length >= 100) {
         var msgLowerK = msg.toLowerCase();
         var hasKw = KEYWORDS.some(function(kw) {
@@ -807,13 +797,9 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         });
         if (hasKw) {
           var key3 = msg.substring(0, 100).replace(/\s/g, "");
-          if (!sent[key3]) {
+          if (!sent[key3] && targetSess) {
             sent[key3] = true;
-            if (targetSess) {
-              targetSess.reply(msg);
-            } else {
-              replier.reply("[전달실패] 삼하마샌 세션 없음. 삼하마샌에서 아무 메시지나 보내면 다시 활성화됩니다.");
-            }
+            targetSess.reply(msg);
           }
         }
         return;
