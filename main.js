@@ -52,7 +52,7 @@ var LOOKUP = {
   "키오시아":       { s: "KYOCF",  n: "키오시아" },
   "키옥시아":       { s: "KYOCF",  n: "키오시아" },
 
-  // 국내 주식
+  // 국내 대형주
   "삼성전자":         { s: "005930.KS", n: "삼성전자" },
   "sk하이닉스":       { s: "000660.KS", n: "SK하이닉스" },
   "하이닉스":         { s: "000660.KS", n: "SK하이닉스" },
@@ -71,6 +71,59 @@ var LOOKUP = {
   "기아":             { s: "000270.KS", n: "기아" },
   "삼성물산":         { s: "028260.KS", n: "삼성물산" },
   "한국전력":         { s: "015760.KS", n: "한국전력" },
+  "하나금융지주":     { s: "086790.KS", n: "하나금융지주" },
+  "우리금융지주":     { s: "316140.KS", n: "우리금융지주" },
+  "현대모비스":       { s: "012330.KS", n: "현대모비스" },
+  "한화에어로스페이스": { s: "012450.KS", n: "한화에어로스페이스" },
+  "한화에어로":       { s: "012450.KS", n: "한화에어로스페이스" },
+  "두산에너빌리티":   { s: "034020.KS", n: "두산에너빌리티" },
+  "두산":             { s: "000150.KS", n: "두산" },
+  "sk이노베이션":     { s: "096770.KS", n: "SK이노베이션" },
+  "sk":               { s: "034730.KS", n: "SK" },
+  "한국조선해양":     { s: "009540.KS", n: "한국조선해양" },
+  "현대중공업":       { s: "329180.KS", n: "현대중공업" },
+  "삼성중공업":       { s: "010140.KS", n: "삼성중공업" },
+  "대우조선해양":     { s: "042660.KS", n: "한화오션" },
+  "한화오션":         { s: "042660.KS", n: "한화오션" },
+  "lg전자":           { s: "066570.KS", n: "LG전자" },
+  "lg":               { s: "003550.KS", n: "LG" },
+  "롯데케미칼":       { s: "011170.KS", n: "롯데케미칼" },
+
+  // 반도체·부품·장비
+  "삼성전기":         { s: "009150.KS", n: "삼성전기" },
+  "이수페타시스":     { s: "007660.KS", n: "이수페타시스" },
+  "한미반도체":       { s: "042700.KS", n: "한미반도체" },
+  "리노공업":         { s: "058470.KQ", n: "리노공업" },
+  "테크윙":           { s: "089030.KQ", n: "테크윙" },
+  "원익ips":          { s: "240810.KQ", n: "원익IPS" },
+  "에이피시스템":     { s: "278990.KQ", n: "에이피시스템" },
+  "피에스케이":       { s: "319660.KQ", n: "피에스케이" },
+  "솔브레인":         { s: "357780.KQ", n: "솔브레인" },
+  "동진쎄미켐":       { s: "005290.KS", n: "동진쎄미켐" },
+  "isc":              { s: "095340.KQ", n: "ISC" },
+  "고영":             { s: "098460.KQ", n: "고영테크놀러지" },
+  "심텍":             { s: "222800.KQ", n: "심텍" },
+  "대덕전자":         { s: "353200.KS", n: "대덕전자" },
+  "코리아써키트":     { s: "007810.KS", n: "코리아써키트" },
+  "삼성전기우":       { s: "009155.KS", n: "삼성전기우" },
+
+  // 방산·에너지·조선
+  "stx엔진":          { s: "077970.KS", n: "STX엔진" },
+  "hd현대마린엔진":   { s: "082740.KS", n: "HD현대마린엔진" },
+  "hsd엔진":          { s: "082740.KS", n: "HD현대마린엔진" },
+  "현대마린엔진":     { s: "082740.KS", n: "HD현대마린엔진" },
+  "hd현대":           { s: "267250.KS", n: "HD현대" },
+  "현대일렉트릭":     { s: "267260.KS", n: "현대일렉트릭" },
+  "효성중공업":       { s: "298040.KS", n: "효성중공업" },
+  "ls일렉트릭":       { s: "010120.KS", n: "LS일렉트릭" },
+
+  // 바이오·헬스
+  "삼성바이오":       { s: "207940.KS", n: "삼성바이오로직스" },
+  "유한양행":         { s: "000100.KS", n: "유한양행" },
+  "한미약품":         { s: "128940.KS", n: "한미약품" },
+  "셀트리온헬스케어": { s: "091990.KQ", n: "셀트리온헬스케어" },
+  "에이치엘비":       { s: "028300.KQ", n: "HLB" },
+  "hlb":              { s: "028300.KQ", n: "HLB" },
 };
 
 var ALL_INDICES = [
@@ -82,7 +135,7 @@ var ALL_INDICES = [
   { label: "러셀2000", symbol: "^RUT"  },
 ];
 
-// ── URL 인코딩 (Rhino 환경 안전) ──────────────────────────────────────
+// ── URL 인코딩 ────────────────────────────────────────────────────────
 function urlEncode(str) {
   try {
     return String(java.net.URLEncoder.encode(str, "UTF-8")).replace(/\+/g, "%20");
@@ -91,17 +144,20 @@ function urlEncode(str) {
   }
 }
 
-// ── HTTP GET ──────────────────────────────────────────────────────────
+// ── 범용 HTTP GET ─────────────────────────────────────────────────────
 function httpGet(url) {
+  return httpGetWithHeaders(url, {});
+}
+
+function httpGetWithHeaders(url, extraHeaders) {
   try {
     var jURL = new java.net.URL(url);
     var conn = jURL.openConnection();
-    conn.setRequestProperty(
-      "User-Agent",
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
-    );
+    conn.setRequestProperty("User-Agent",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
     conn.setConnectTimeout(8000);
     conn.setReadTimeout(8000);
+    for (var k in extraHeaders) conn.setRequestProperty(k, extraHeaders[k]);
     var reader = new java.io.BufferedReader(
       new java.io.InputStreamReader(conn.getInputStream(), "UTF-8")
     );
@@ -116,8 +172,6 @@ function httpGet(url) {
 }
 
 // ── 특정 방으로 메시지 전송 (세션 replier 우선, 3000자 단위 분할) ─────
-// [버그 수정] Api.replyRoom 대신 저장된 세션 replier 사용 → 안정적 전송
-// [버그 수정] 긴 메시지 분할로 잘림 방지
 function sendToRoom(roomName, message) {
   var MAX = 3000;
   var i = 0;
@@ -132,7 +186,6 @@ function sendToRoom(roomName, message) {
 }
 
 // ── sent 초기화 (세션 replier는 보존) ────────────────────────────────
-// [버그 수정] 기존 sent={} 리셋이 세션까지 날려서 포워딩 불가해지는 문제 해결
 function cleanSent() {
   if (Object.keys(sent).length > 500) {
     var keep = {};
@@ -143,33 +196,67 @@ function cleanSent() {
   }
 }
 
-// ── 네이버 금융 자동완성으로 국내 종목 심볼 탐색 ─────────────────────
-// [버그 수정] Yahoo Finance 검색이 한글에서 OTC/미국 심볼을 반환하는 문제 해결
-// 네이버 금융은 한글 검색 완벽 지원 + 6자리 코드 + 시장(코스피/코스닥) 정보 제공
+// ── 국내 종목 검색: 네이버 자동완성 (1차) → Yahoo KR 검색 (2차) ──────
+// java.net.URI 사용: 한글 쿼리를 가장 정확하게 percent-encoding
 function searchKrSymbol(query) {
+  // 1차: 네이버 금융 자동완성
   try {
-    var raw = httpGet(
-      "https://ac.finance.naver.com/ac?q=" + urlEncode(query) +
-      "&q_enc=UTF-8&target=stock&with_article=N"
+    var uri = new java.net.URI(
+      "https", "ac.finance.naver.com", "/ac",
+      "q=" + query + "&q_enc=UTF-8&target=stock&with_article=N",
+      null
     );
-    if (!raw) return null;
-    var data = JSON.parse(raw);
-    var items = data.items;
-    if (!items || !items.length) return null;
-    for (var i = 0; i < items.length; i++) {
-      var item = items[i];
-      if (!item || !item[1]) continue;
-      var code = String(item[1]);
-      if (!/^\d{6}$/.test(code)) continue;
-      // item[2] 에 시장 정보 포함 ("코스닥" 이면 .KQ, 나머지는 .KS)
-      var market = item[2] ? String(item[2]) : "";
-      var suffix = (market.indexOf("코스닥") !== -1) ? ".KQ" : ".KS";
-      return code + suffix;
+    var raw = httpGetWithHeaders(uri.toURL().toString(), {
+      "Referer":          "https://finance.naver.com/",
+      "Accept":           "application/json, text/javascript, */*; q=0.01",
+      "Accept-Language":  "ko-KR,ko;q=0.9",
+      "X-Requested-With": "XMLHttpRequest",
+      "User-Agent":       "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120.0.0.0 Mobile Safari/537.36"
+    });
+    if (raw && raw.charAt(0) === "{") {
+      var data = JSON.parse(raw);
+      var items = data.items;
+      if (items && items.length) {
+        for (var i = 0; i < items.length; i++) {
+          var item = items[i];
+          // items[i]가 배열인 경우: [name, code, market, ...]
+          // items[i]가 객체인 경우: {code: "...", name: "..."}
+          var code = null, market = "";
+          if (item[1] !== undefined) {
+            code   = String(item[1]).trim();
+            market = item[2] ? String(item[2]) : "";
+          } else if (item.code) {
+            code   = String(item.code).trim();
+            market = item.market ? String(item.market) : "";
+          }
+          if (!code || !/^\d{6}$/.test(code)) continue;
+          var suffix = (market.indexOf("코스닥") !== -1) ? ".KQ" : ".KS";
+          return code + suffix;
+        }
+      }
     }
-    return null;
-  } catch (e) {
-    return null;
-  }
+  } catch (e) { /* 1차 실패 → 2차로 */ }
+
+  // 2차: Yahoo Finance search with region=KR (KS/KQ 심볼만 수용)
+  try {
+    var raw2 = httpGet(
+      "https://query1.finance.yahoo.com/v1/finance/search?q=" +
+      urlEncode(query) + "&quotesCount=5&newsCount=0&region=KR&lang=ko-KR"
+    );
+    if (raw2) {
+      var data2 = JSON.parse(raw2);
+      if (data2.quotes && data2.quotes.length) {
+        for (var j = 0; j < data2.quotes.length; j++) {
+          var sym = data2.quotes[j].symbol;
+          if (sym && (sym.indexOf(".KS") !== -1 || sym.indexOf(".KQ") !== -1)) {
+            return sym;
+          }
+        }
+      }
+    }
+  } catch (e) { /* 2차도 실패 */ }
+
+  return null;
 }
 
 // ── Yahoo Finance 시세 조회 ───────────────────────────────────────────
@@ -202,7 +289,7 @@ function fetchQuote(symbol) {
   }
 }
 
-// ── 숫자 포맷 헬퍼 ────────────────────────────────────────────────────
+// ── 숫자 포맷 ─────────────────────────────────────────────────────────
 function commasInt(n) {
   return Math.round(Math.abs(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
@@ -212,7 +299,7 @@ function commasFloat(n) {
   return parts.join(".");
 }
 
-// ── 단일 종목 메시지 포맷 ─────────────────────────────────────────────
+// ── 단일 종목 포맷 ────────────────────────────────────────────────────
 function formatQuote(info, displayName) {
   var isKRW   = (info.currency === "KRW");
   var isIndex = (info.symbol.charAt(0) === "^");
@@ -242,7 +329,7 @@ function formatQuote(info, displayName) {
     "전일종가: " + prevStr;
 }
 
-// ── /지수: 전체 지수 요약 ─────────────────────────────────────────────
+// ── /지수 ─────────────────────────────────────────────────────────────
 function fetchAllIndices() {
   var lines = ["📈 주요 지수\n"];
   for (var i = 0; i < ALL_INDICES.length; i++) {
@@ -259,7 +346,7 @@ function fetchAllIndices() {
   return lines.join("\n");
 }
 
-// ── /유가: WTI + 브렌트 한줄씩 ──────────────────────────────────────
+// ── /유가 ─────────────────────────────────────────────────────────────
 function fetchOilPrice() {
   function oilLine(label, symbol) {
     var info = fetchQuote(symbol);
@@ -285,7 +372,7 @@ function handleSlash(query, replier) {
     symbol      = entry.s;
     displayName = entry.n;
   } else if (/[가-힣]/.test(query)) {
-    // 한글 종목명 → 네이버 금융으로 KS/KQ 심볼 탐색
+    // 한글 → 네이버(1차) + Yahoo KR(2차) 검색
     symbol = searchKrSymbol(query);
     if (!symbol) { replier.reply("❌ [" + query + "] 을 찾을 수 없습니다."); return; }
     displayName = query;
@@ -304,20 +391,16 @@ function handleSlash(query, replier) {
 function response(room, msg, sender, isGroupChat, replier, imageDB, packageName) {
 
   if (packageName === "com.kakao.talk") {
-    // 모든 카톡 방의 세션 저장 (포워딩에 사용)
     if (sent["__session__" + room] === undefined) {
       sent["__session__" + room] = replier;
     }
 
-    // /종목명 → 주식 조회
     if (msg.charAt(0) === "/" && msg.trim().length > 1) {
       var cmd = msg.trim().slice(1).toLowerCase();
       handleSlash(cmd, replier);
       return;
     }
 
-    // 카톡 → 카톡 (트럼프뉴스 → 삼하마샌)
-    // [버그 수정] sendToRoom 사용으로 세션 유지 + 안정적 전송
     if (room === "트럼프뉴스" && msg.indexOf("트럼프") !== -1) {
       var key2 = msg.substring(0, 100).replace(/\s/g, "");
       if (!sent[key2]) {
@@ -328,7 +411,6 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
     return;
   }
 
-  // 텔레그램 → 카톡
   if (packageName !== "org.telegram.messenger") return;
 
   var msgLower = msg.toLowerCase();
@@ -360,7 +442,6 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
   if (sent[key]) return;
   sent[key] = true;
 
-  // [버그 수정] 세션 초기화 시 replier 보존 + sendToRoom으로 잘림 방지
   cleanSent();
 
   java.lang.Thread.sleep(2000);
