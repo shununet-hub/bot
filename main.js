@@ -358,6 +358,31 @@ function getYFAuth() {
   return _yfAuth;
 }
 
+// ── 네이버 주가 조회 (국내 소형주 fallback) ──────────────────────────
+function fetchNaverQuote(code, fallbackSymbol) {
+  var raw = httpGetWithHeaders(
+    "https://m.stock.naver.com/api/stock/" + code + "/basic",
+    { "Referer": "https://m.stock.naver.com/", "Accept": "application/json" }
+  );
+  if (!raw) return null;
+  try {
+    var d = JSON.parse(raw);
+    var price  = parseFloat(String(d.closePrice || "").replace(/,/g, ""));
+    var change = parseFloat(String(d.compareToPreviousClosePrice || "0").replace(/,/g, "").replace(/\+/g, ""));
+    var pct    = parseFloat(String(d.fluctuationsRatio || "0").replace(/\+/g, ""));
+    if (!price) return null;
+    return {
+      symbol:    fallbackSymbol || (code + ".KS"),
+      name:      d.stockName || code,
+      price:     price,
+      prevClose: price - change,
+      change:    change,
+      changePct: pct,
+      currency:  "KRW"
+    };
+  } catch(e) { return null; }
+}
+
 // ── Yahoo Finance 시세 일괄 조회 (섹터용) ────────────────────────────
 function fetchQuoteBatch(symbols) {
   if (!symbols || !symbols.length) return {};
@@ -584,23 +609,23 @@ function handleSlash(query, replier) {
     symbol      = entry.s;
     displayName = entry.n;
   } else if (/^\d{6}$/.test(query)) {
-    // 6자리 종목코드 직접 입력
-    var ksInfo = fetchQuote(query + ".KS");
+    var ksInfo = fetchQuote(query + ".KS") || fetchNaverQuote(query, query + ".KS");
     if (ksInfo) { replier.reply(formatQuote(ksInfo, null)); return; }
     symbol      = query + ".KQ";
     displayName = null;
   } else if (/[가-힣]/.test(query)) {
-    // 한글 → 네이버(1차) + Yahoo KR(2차) 검색
     symbol = searchKrSymbol(query);
     if (!symbol) { replier.reply("⚠️ [" + query + "] 을 찾을 수 없습니다."); return; }
     displayName = query;
   } else {
-    // 영문 티커 직접 시도
     symbol      = query.toUpperCase();
     displayName = null;
   }
 
   var info = fetchQuote(symbol);
+  if (!info && /\.(KS|KQ)$/.test(symbol)) {
+    info = fetchNaverQuote(symbol.replace(/\.(KS|KQ)$/, ""), symbol);
+  }
   if (!info) { replier.reply("⚠️ [" + query + "] 을 찾을 수 없습니다."); return; }
   replier.reply(formatQuote(info, displayName));
 }
