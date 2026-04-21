@@ -1,34 +1,93 @@
 var sent = {};
 
-// 국내 주요 종목명 → Yahoo Finance 코드 매핑
-var KR_STOCKS = {
-  "삼성전자":        { code: "005930.KS" },
-  "sk하이닉스":     { code: "000660.KS" },
-  "하이닉스":       { code: "000660.KS" },
-  "현대차":         { code: "005380.KS" },
-  "현대자동차":     { code: "005380.KS" },
-  "카카오":         { code: "035720.KS" },
-  "네이버":         { code: "035420.KS" },
-  "셀트리온":       { code: "068270.KS" },
-  "lg에너지솔루션": { code: "373220.KS" },
-  "삼성바이오로직스": { code: "207940.KS" },
-  "kb금융":         { code: "105560.KS" },
-  "신한지주":       { code: "055550.KS" },
-  "포스코홀딩스":   { code: "005490.KS" },
-  "lg화학":         { code: "051910.KS" },
-  "삼성sdi":        { code: "006400.KS" },
-  "기아":           { code: "000270.KS" },
-  "삼성물산":       { code: "028260.KS" },
-  "한국전력":       { code: "015760.KS" },
+// ── 종목명/별칭 → Yahoo Finance 심볼 매핑 ──────────────────────────
+var LOOKUP = {
+  // 전체 지수 한번에 보기
+  "지수":    "__ALL_INDICES__",
+
+  // 개별 지수
+  "코스피":  "^KS11",
+  "kospi":   "^KS11",
+  "코스닥":  "^KQ11",
+  "kosdaq":  "^KQ11",
+  "나스닥":  "^IXIC",
+  "nasdaq":  "^IXIC",
+  "에센피":  "^GSPC",
+  "sp500":   "^GSPC",
+  "s&p500":  "^GSPC",
+  "다우":    "^DJI",
+  "dow":     "^DJI",
+  "러셀":    "^RUT",
+  "russell": "^RUT",
+
+  // 원자재
+  "유가":   "CL=F",
+  "wti":    "CL=F",
+  "브렌트": "BZ=F",
+  "금":     "GC=F",
+  "gold":   "GC=F",
+  "은":     "SI=F",
+  "구리":   "HG=F",
+
+  // 미국 주식 한글명
+  "샌디스크":       "SNDK",
+  "웨스턴디지털":   "WDC",
+  "마이크론":       "MU",
+  "엔비디아":       "NVDA",
+  "nvidia":         "NVDA",
+  "테슬라":         "TSLA",
+  "애플":           "AAPL",
+  "구글":           "GOOGL",
+  "알파벳":         "GOOGL",
+  "메타":           "META",
+  "아마존":         "AMZN",
+  "마이크로소프트": "MSFT",
+  "브로드컴":       "AVGO",
+  "퀄컴":           "QCOM",
+  "인텔":           "INTC",
+  "패스틀리":       "FSLY",
+  "fastly":         "FSLY",
+  "로켓랩":         "RKLB",
+  "버노바":         "GEV",
+  "베르노바":       "GEV",
+  "폼팩터":         "FORM",
+  "키오시아":       "KYOCF",
+  "키옥시아":       "KYOCF",
+
+  // 국내 주식
+  "삼성전자":         "005930.KS",
+  "sk하이닉스":       "000660.KS",
+  "하이닉스":         "000660.KS",
+  "현대차":           "005380.KS",
+  "현대자동차":       "005380.KS",
+  "카카오":           "035720.KS",
+  "네이버":           "035420.KS",
+  "셀트리온":         "068270.KS",
+  "lg에너지솔루션":   "373220.KS",
+  "삼성바이오로직스": "207940.KS",
+  "kb금융":           "105560.KS",
+  "신한지주":         "055550.KS",
+  "포스코홀딩스":     "005490.KS",
+  "lg화학":           "051910.KS",
+  "삼성sdi":          "006400.KS",
+  "기아":             "000270.KS",
+  "삼성물산":         "028260.KS",
+  "한국전력":         "015760.KS",
 };
 
-// Yahoo Finance chart API로 종목 시세 조회
-function fetchStockQuote(symbol) {
-  try {
-    var url = "https://query1.finance.yahoo.com/v8/finance/chart/" +
-      encodeURIComponent(symbol) +
-      "?range=1d&interval=1d&includePrePost=false";
+// /지수 명령 시 표시할 지수 목록
+var ALL_INDICES = [
+  { label: "코스피",   symbol: "^KS11" },
+  { label: "코스닥",   symbol: "^KQ11" },
+  { label: "나스닥",   symbol: "^IXIC" },
+  { label: "S&P500",   symbol: "^GSPC" },
+  { label: "다우",     symbol: "^DJI"  },
+  { label: "러셀2000", symbol: "^RUT"  },
+];
 
+// ── HTTP GET ──────────────────────────────────────────────────────────
+function httpGet(url) {
+  try {
     var jURL = new java.net.URL(url);
     var conn = jURL.openConnection();
     conn.setRequestProperty(
@@ -37,33 +96,42 @@ function fetchStockQuote(symbol) {
     );
     conn.setConnectTimeout(8000);
     conn.setReadTimeout(8000);
-
     var reader = new java.io.BufferedReader(
       new java.io.InputStreamReader(conn.getInputStream(), "UTF-8")
     );
     var sb = new java.lang.StringBuilder();
     var line;
-    while ((line = reader.readLine()) !== null) {
-      sb.append(line);
-    }
+    while ((line = reader.readLine()) !== null) sb.append(line);
     reader.close();
+    return sb.toString();
+  } catch (e) {
+    return null;
+  }
+}
 
-    var data = JSON.parse(sb.toString());
+// ── Yahoo Finance 시세 조회 ───────────────────────────────────────────
+function fetchQuote(symbol) {
+  var raw = httpGet(
+    "https://query1.finance.yahoo.com/v8/finance/chart/" +
+    encodeURIComponent(symbol) +
+    "?range=1d&interval=1d&includePrePost=false"
+  );
+  if (!raw) return null;
+  try {
+    var data = JSON.parse(raw);
     if (!data.chart || !data.chart.result || !data.chart.result[0]) return null;
-
     var meta = data.chart.result[0].meta;
     var price = meta.regularMarketPrice;
-    var prevClose = meta.chartPreviousClose;
-    if (!price || !prevClose) return null;
-
-    var change = price - prevClose;
+    var prev  = meta.chartPreviousClose || meta.previousClose;
+    if (!price || !prev) return null;
+    var change = price - prev;
     return {
       symbol:    meta.symbol || symbol,
       name:      meta.shortName || meta.longName || symbol,
       price:     price,
-      prevClose: prevClose,
+      prevClose: prev,
       change:    change,
-      changePct: (change / prevClose) * 100,
+      changePct: (change / prev) * 100,
       currency:  meta.currency || "USD"
     };
   } catch (e) {
@@ -71,91 +139,73 @@ function fetchStockQuote(symbol) {
   }
 }
 
-// 조회 결과를 카톡 메시지 형식으로 포맷
-function formatStockMessage(info) {
-  var isKRW = (info.currency === "KRW");
-  var prefix = isKRW ? "₩" : "$";
-  var arrow  = info.change >= 0 ? "▲" : "▼";
-  var sign   = info.change >= 0 ? "+" : "";
-  var displaySymbol = info.symbol.replace(/\.(KS|KQ)$/, "");
+// ── 단일 종목 메시지 포맷 ─────────────────────────────────────────────
+function formatQuote(info) {
+  var isKRW   = (info.currency === "KRW");
+  var isIndex = (info.symbol.charAt(0) === "^");
+  var arrow   = info.change >= 0 ? "▲" : "▼";
+  var sign    = info.change >= 0 ? "+" : "";
+  var display = info.symbol.replace(/\.(KS|KQ)$/, "");
 
-  function fmtPrice(v) {
-    return isKRW
-      ? prefix + Math.round(v).toLocaleString()
-      : prefix + v.toFixed(2);
+  function fmt(v) {
+    if (isIndex)     return v.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    if (isKRW)       return "₩" + Math.round(v).toLocaleString();
+    return "$" + v.toFixed(2);
   }
-  function fmtChange(v) {
-    return isKRW
-      ? sign + Math.round(v).toLocaleString()
-      : sign + v.toFixed(2);
+  function fmtChg(v) {
+    if (isIndex) return sign + Math.abs(v).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    if (isKRW)   return sign + Math.round(Math.abs(v)).toLocaleString();
+    return sign + Math.abs(v).toFixed(2);
   }
 
-  return "📊 " + info.name + " (" + displaySymbol + ")\n\n" +
-    "현재가: " + fmtPrice(info.price) + "\n\n" +
-    arrow + " " + fmtChange(info.change) + " (" + sign + info.changePct.toFixed(2) + "%)\n\n" +
-    "전일종가: " + fmtPrice(info.prevClose);
+  return "📊 " + info.name + " (" + display + ")\n\n" +
+    "현재가: " + fmt(info.price) + "\n\n" +
+    arrow + " " + fmtChg(info.change) + " (" + sign + info.changePct.toFixed(2) + "%)\n\n" +
+    "전일종가: " + fmt(info.prevClose);
 }
 
-// /티커 명령 처리 (미국 + 국내 모두)
-function handleTicker(msg, replier) {
-  var parts = msg.trim().split(/\s+/);
-  if (parts.length < 2) {
-    replier.reply(
-      "사용법: /티커 [종목코드 또는 종목명]\n" +
-      "예) /티커 SNDK\n" +
-      "예) /티커 삼성전자"
+// ── /지수 전체 요약 ───────────────────────────────────────────────────
+function fetchAllIndices() {
+  var lines = ["📈 주요 지수\n"];
+  for (var i = 0; i < ALL_INDICES.length; i++) {
+    var idx  = ALL_INDICES[i];
+    var info = fetchQuote(idx.symbol);
+    if (!info) {
+      lines.push(idx.label + ": 조회 실패");
+      continue;
+    }
+    var arrow = info.change >= 0 ? "▲" : "▼";
+    var sign  = info.change >= 0 ? "+" : "";
+    lines.push(
+      idx.label + ": " +
+      info.price.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",") +
+      "  " + arrow + " " + sign + info.changePct.toFixed(2) + "%"
     );
+  }
+  return lines.join("\n");
+}
+
+// ── /명령 처리 ────────────────────────────────────────────────────────
+function handleSlash(cmd, replier) {
+  var symbol = LOOKUP[cmd];
+
+  if (symbol === "__ALL_INDICES__") {
+    replier.reply(fetchAllIndices());
     return;
   }
 
-  var query = parts.slice(1).join(" ").trim();
-  var kr = KR_STOCKS[query.toLowerCase()];
-  var symbol = kr ? kr.code : query.toUpperCase();
+  // 매핑 없으면 대문자 티커로 직접 시도 (예: /sndk → SNDK)
+  if (!symbol) symbol = cmd.toUpperCase();
 
-  var info = fetchStockQuote(symbol);
+  var info = fetchQuote(symbol);
   if (!info) {
-    replier.reply("❌ [" + symbol + "] 정보를 불러올 수 없습니다.\n종목코드를 확인해 주세요.");
+    replier.reply("❌ [" + cmd + "] 을 찾을 수 없습니다.");
     return;
   }
-  replier.reply(formatStockMessage(info));
+  replier.reply(formatQuote(info));
 }
 
-// /국내주식 명령 처리 (종목명 또는 6자리 코드)
-function handleKrStock(msg, replier) {
-  var parts = msg.trim().split(/\s+/);
-  if (parts.length < 2) {
-    replier.reply(
-      "사용법: /국내주식 [종목명 또는 종목코드]\n" +
-      "예) /국내주식 삼성전자\n" +
-      "예) /국내주식 005930"
-    );
-    return;
-  }
-
-  var query = parts.slice(1).join(" ").trim();
-  var queryLower = query.toLowerCase();
-  var symbol;
-
-  if (KR_STOCKS[queryLower]) {
-    symbol = KR_STOCKS[queryLower].code;
-  } else if (/^\d{6}$/.test(query)) {
-    symbol = query + ".KS";
-  } else {
-    replier.reply(
-      "❌ [" + query + "] 을 찾을 수 없습니다.\n" +
-      "6자리 코드 또는 등록된 종목명으로 입력해 주세요."
-    );
-    return;
-  }
-
-  var info = fetchStockQuote(symbol);
-  if (!info) {
-    replier.reply("❌ [" + symbol + "] 정보를 불러올 수 없습니다.");
-    return;
-  }
-  replier.reply(formatStockMessage(info));
-}
-
+// ── 메인 ─────────────────────────────────────────────────────────────
 function response(room, msg, sender, isGroupChat, replier, imageDB, packageName) {
 
   if (packageName === "com.kakao.talk") {
@@ -163,13 +213,10 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       sent["__session__" + room] = replier;
     }
 
-    // 주식 조회 명령어 (카톡 어느 방에서든 동작)
-    if (msg.startsWith("/티커")) {
-      handleTicker(msg, replier);
-      return;
-    }
-    if (msg.startsWith("/국내주식")) {
-      handleKrStock(msg, replier);
+    // /종목명 or /티커 → 주식 조회
+    if (msg.charAt(0) === "/" && msg.trim().length > 1) {
+      var cmd = msg.trim().slice(1).toLowerCase();
+      handleSlash(cmd, replier);
       return;
     }
 
