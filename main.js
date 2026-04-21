@@ -706,6 +706,16 @@ function handleSlash(query, replier) {
   if (entry === "__INTL_SEMI__")   { replier.reply(buildSectorMsg("🌐 해외 반도체 시세", INTL_SEMI_STOCKS, INTL_SEMI_EXTRA, true, "(본장시간 외 종가로 표기)")); return; }
   if (entry === "__US_TECH__")     { replier.reply(buildSectorMsg("🇺🇸 미국 기술주 시세", US_TECH_STOCKS, null, true, "(본장시간 외 종가로 표기)")); return; }
 
+  // 디버그: 현재 봇이 인식 중인 방 목록
+  if (query === "세션") {
+    var rooms = [];
+    for (var k in sent) {
+      if (k.indexOf("__session__") === 0) rooms.push(k.replace("__session__", ""));
+    }
+    replier.reply("📋 활성 세션 방 목록:\n" + (rooms.length ? rooms.join("\n") : "없음"));
+    return;
+  }
+
   var symbol, displayName;
 
   if (entry) {
@@ -783,9 +793,10 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
 
       if (isFromTrump && msg.length > 5) {
         var key2 = msg.substring(0, 100).replace(/\s/g, "");
-        if (!sent[key2] && targetSess) {
+        if (!sent[key2]) {
           sent[key2] = true;
-          targetSess.reply(msg);
+          if (targetSess) targetSess.reply(msg);
+          else Api.replyRoom("삼하마샌", msg);
         }
         return;
       }
@@ -797,9 +808,10 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         });
         if (hasKw) {
           var key3 = msg.substring(0, 100).replace(/\s/g, "");
-          if (!sent[key3] && targetSess) {
+          if (!sent[key3]) {
             sent[key3] = true;
-            targetSess.reply(msg);
+            if (targetSess) targetSess.reply(msg);
+            else Api.replyRoom("삼하마샌", msg);
           }
         }
         return;
