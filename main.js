@@ -275,20 +275,25 @@ function searchKrSymbol(query) {
       var items = data.items;
       if (items && items.length) {
         for (var i = 0; i < items.length; i++) {
-          var item = items[i];
-          // items[i]가 배열인 경우: [name, code, market, ...]
-          // items[i]가 객체인 경우: {code: "...", name: "..."}
-          var code = null, market = "";
-          if (item[1] !== undefined) {
-            code   = String(item[1]).trim();
-            market = item[2] ? String(item[2]) : "";
-          } else if (item.code) {
-            code   = String(item.code).trim();
-            market = item.market ? String(item.market) : "";
+          var group = items[i];
+          if (!group) continue;
+          // 네이버 AC는 items[그룹][항목] 2단계 구조로 반환하는 경우가 있음
+          var list = (group[0] !== undefined && group[0] !== null && typeof group[0] === "object" && group[0].length !== undefined)
+            ? group : [group];
+          for (var j = 0; j < list.length; j++) {
+            var item = list[j];
+            var code = null, market = "";
+            if (item && item[1] !== undefined) {
+              code   = String(item[1]).trim();
+              market = item[2] ? String(item[2]) : "";
+            } else if (item && item.code) {
+              code   = String(item.code).trim();
+              market = item.market ? String(item.market) : "";
+            }
+            if (!code || !/^\d{6}$/.test(code)) continue;
+            var suffix = (market.indexOf("코스닥") !== -1) ? ".KQ" : ".KS";
+            return code + suffix;
           }
-          if (!code || !/^\d{6}$/.test(code)) continue;
-          var suffix = (market.indexOf("코스닥") !== -1) ? ".KQ" : ".KS";
-          return code + suffix;
         }
       }
     }
@@ -661,7 +666,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
     }
 
     // 트럼프뉴스 → 삼하마샌 (키워드 무관, 모든 메시지)
-    if (room === "트럼프뉴스" && msg.length > 5) {
+    if (room.indexOf("트럼프") !== -1 && msg.length > 5) {
       var key2 = msg.substring(0, 100).replace(/\s/g, "");
       if (!sent[key2]) {
         sent[key2] = true;
@@ -671,7 +676,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
     }
 
     // 미주스터디 → 삼하마샌 (100자 이상 + 키워드)
-    if (room === "미주스터디" && msg.length >= 100) {
+    if (room.indexOf("미주스터디") !== -1 && msg.length >= 100) {
       var msgLowerK = msg.toLowerCase();
       var hasKw = KEYWORDS.some(function(kw) {
         return msgLowerK.indexOf(kw.toLowerCase()) !== -1;
