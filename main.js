@@ -1,7 +1,7 @@
 var sent = {};
 var _yfAuth = null;
 var _yfAuthTs = 0;
-var GEMINI_API_KEY = "AIzaSyAuhEhz1AmQ0_PniGWkqzAx8qSrl08eyVc";
+var GEMINI_API_KEY = "AIzaSyCx_Hmth839bgcaffyrNLJN02L4rs1G_1Y";
 
 // ── 종목 룩업: { s: 심볼, n: 표시명 } 또는 특수 문자열 ───────────────
 var LOOKUP = {
