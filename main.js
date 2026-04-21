@@ -123,6 +123,9 @@ var LOOKUP = {
   "한화엔진":         { s: "272210.KS", n: "한화엔진" },
   "오이솔루션":       { s: "138080.KQ", n: "오이솔루션" },
   "db하이텍":         { s: "000990.KS", n: "DB하이텍" },
+  "네오셈":           { s: "389030.KQ", n: "네오셈" },
+  "snt홀딩스":        { s: "036530.KS", n: "SNT홀딩스" },
+  "snt":              { s: "036530.KS", n: "SNT홀딩스" },
 
   // 방산·에너지·조선
   "stx엔진":          { s: "077970.KS", n: "STX엔진" },
@@ -701,34 +704,51 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       return;
     }
 
-    // ── 디버그: 트럼프/미주 방 이름 확인 ──
-    if (room.indexOf("트럼프") !== -1 || room.indexOf("미주") !== -1) {
-      replier.reply("[디버그] room=" + room + " sender=" + sender);
-    }
+    // ── 트럼프/미주 방 → 삼하마샌 전달 ──
+    var isFromTrump = room.indexOf("트럼프") !== -1;
+    var isFromMiju  = room.indexOf("미주") !== -1;
 
-    // 트럼프뉴스 → 삼하마샌 (키워드 무관, 모든 메시지)
-    if (room.indexOf("트럼프") !== -1 && msg.length > 5) {
-      var key2 = msg.substring(0, 100).replace(/\s/g, "");
-      if (!sent[key2]) {
-        sent[key2] = true;
-        sendToRoom("삼하마샌", msg);
-      }
-      return;
-    }
+    if (isFromTrump || isFromMiju) {
+      var TARGET = "삼하마샌";
+      var targetSess = sent["__session__" + TARGET];
 
-    // 미주스터디 → 삼하마샌 (100자 이상 + 키워드)
-    if (room.indexOf("미주스터디") !== -1 && msg.length >= 100) {
-      var msgLowerK = msg.toLowerCase();
-      var hasKw = KEYWORDS.some(function(kw) {
-        return msgLowerK.indexOf(kw.toLowerCase()) !== -1;
-      });
-      if (hasKw) {
-        var key3 = msg.substring(0, 100).replace(/\s/g, "");
-        if (!sent[key3]) {
-          sent[key3] = true;
-          sendToRoom("삼하마샌", msg);
+      // 디버그: 세션 여부 + 방 이름 현재 방에 표시
+      replier.reply("[디버그] room=" + room + " | 삼하마샌세션=" + (targetSess ? "있음" : "없음★"));
+
+      // 트럼프방: 조건 없이 전달
+      if (isFromTrump && msg.length > 5) {
+        var key2 = msg.substring(0, 100).replace(/\s/g, "");
+        if (!sent[key2]) {
+          sent[key2] = true;
+          if (targetSess) {
+            targetSess.reply(msg);
+          } else {
+            replier.reply("[전달실패] 삼하마샌 세션 없음. 삼하마샌에서 아무 메시지나 보내면 다시 활성화됩니다.");
+          }
         }
+        return;
       }
+
+      // 미주방: 100자 이상 + 키워드
+      if (isFromMiju && msg.length >= 100) {
+        var msgLowerK = msg.toLowerCase();
+        var hasKw = KEYWORDS.some(function(kw) {
+          return msgLowerK.indexOf(kw.toLowerCase()) !== -1;
+        });
+        if (hasKw) {
+          var key3 = msg.substring(0, 100).replace(/\s/g, "");
+          if (!sent[key3]) {
+            sent[key3] = true;
+            if (targetSess) {
+              targetSess.reply(msg);
+            } else {
+              replier.reply("[전달실패] 삼하마샌 세션 없음. 삼하마샌에서 아무 메시지나 보내면 다시 활성화됩니다.");
+            }
+          }
+        }
+        return;
+      }
+
       return;
     }
 
