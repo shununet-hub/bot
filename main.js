@@ -36,7 +36,9 @@ var LOOKUP = {
 
   // 미국 주식
   "샌디스크":       { s: "SNDK",   n: "샌디스크" },
+  "샌디":           { s: "SNDK",   n: "샌디스크" },
   "웨스턴디지털":   { s: "WDC",    n: "웨스턴디지털" },
+  "웬디":           { s: "WDC",    n: "웨스턴디지털" },
   "마이크론":       { s: "MU",     n: "마이크론" },
   "엔비디아":       { s: "NVDA",   n: "엔비디아" },
   "테슬라":         { s: "TSLA",   n: "테슬라" },
@@ -46,10 +48,12 @@ var LOOKUP = {
   "메타":           { s: "META",   n: "메타" },
   "아마존":         { s: "AMZN",   n: "아마존" },
   "마이크로소프트": { s: "MSFT",   n: "마이크로소프트" },
+  "마소":           { s: "MSFT",   n: "마이크로소프트" },
   "브로드컴":       { s: "AVGO",   n: "브로드컴" },
   "퀄컴":           { s: "QCOM",   n: "퀄컴" },
   "인텔":           { s: "INTC",   n: "인텔" },
   "패스틀리":       { s: "FSLY",   n: "패스틀리" },
+  "패슬리":         { s: "FSLY",   n: "패스틀리" },
   "fastly":         { s: "FSLY",   n: "Fastly" },
   "로켓랩":         { s: "RKLB",   n: "로켓랩" },
   "버노바":         { s: "GEV",    n: "버노바" },
@@ -60,8 +64,10 @@ var LOOKUP = {
 
   // 국내 대형주
   "삼성전자":         { s: "005930.KS", n: "삼성전자" },
+  "삼전":             { s: "005930.KS", n: "삼성전자" },
   "sk하이닉스":       { s: "000660.KS", n: "SK하이닉스" },
   "하이닉스":         { s: "000660.KS", n: "SK하이닉스" },
+  "하닉":             { s: "000660.KS", n: "SK하이닉스" },
   "현대차":           { s: "005380.KS", n: "현대자동차" },
   "현대자동차":       { s: "005380.KS", n: "현대자동차" },
   "카카오":           { s: "035720.KS", n: "카카오" },
@@ -570,7 +576,7 @@ function handleSlash(query, replier) {
   if (entry === "__SEMI_COMBINED__") { replier.reply(fetchCombinedSemi()); return; }
   if (entry === "__KR_SEMI__")       { replier.reply(buildSectorMsg("🇰🇷 한국 반도체 시세", KR_SEMI_STOCKS, null, false, null)); return; }
   if (entry === "__INTL_SEMI__")   { replier.reply(buildSectorMsg("🌐 해외 반도체 시세", INTL_SEMI_STOCKS, INTL_SEMI_EXTRA, true, "(본장시간 외 종가로 표기)")); return; }
-  if (entry === "__US_TECH__")     { replier.reply(buildSectorMsg("🇺🇸 미국 기술주 시세", US_TECH_STOCKS, null, false, "(본장시간 외 종가로 표기)")); return; }
+  if (entry === "__US_TECH__")     { replier.reply(buildSectorMsg("🇺🇸 미국 기술주 시세", US_TECH_STOCKS, null, true, "(본장시간 외 종가로 표기)")); return; }
 
   var symbol, displayName;
 
