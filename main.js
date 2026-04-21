@@ -665,6 +665,11 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       return;
     }
 
+    // ── 디버그: 모든 카톡 방 이름 찍기 ──
+    if (room.indexOf("트럼프") !== -1 || room.indexOf("미주") !== -1) {
+      sendToRoom("삼하마샌", "[디버그] room=\"" + room + "\" sender=\"" + sender + "\"");
+    }
+
     // 트럼프뉴스 → 삼하마샌 (키워드 무관, 모든 메시지)
     if (room.indexOf("트럼프") !== -1 && msg.length > 5) {
       var key2 = msg.substring(0, 100).replace(/\s/g, "");
