@@ -206,8 +206,8 @@ function httpGetWithHeaders(url, extraHeaders) {
     var conn = jURL.openConnection();
     conn.setRequestProperty("User-Agent",
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36");
-    conn.setConnectTimeout(8000);
-    conn.setReadTimeout(8000);
+    conn.setConnectTimeout(5000);
+    conn.setReadTimeout(5000);
     for (var k in extraHeaders) conn.setRequestProperty(k, extraHeaders[k]);
     var reader = new java.io.BufferedReader(
       new java.io.InputStreamReader(conn.getInputStream(), "UTF-8")
@@ -323,8 +323,8 @@ function getYFAuth() {
     conn1.setInstanceFollowRedirects(true);
     conn1.setRequestProperty("User-Agent", UA);
     conn1.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
-    conn1.setConnectTimeout(10000);
-    conn1.setReadTimeout(10000);
+    conn1.setConnectTimeout(6000);
+    conn1.setReadTimeout(6000);
     conn1.connect();
     var cookies = [];
     for (var i = 1; ; i++) {
@@ -340,8 +340,8 @@ function getYFAuth() {
     var conn2 = new java.net.URL("https://query1.finance.yahoo.com/v1/test/getcrumb").openConnection();
     conn2.setRequestProperty("User-Agent", UA);
     conn2.setRequestProperty("Cookie", cookieStr);
-    conn2.setConnectTimeout(8000);
-    conn2.setReadTimeout(8000);
+    conn2.setConnectTimeout(5000);
+    conn2.setReadTimeout(5000);
     var br = new java.io.BufferedReader(new java.io.InputStreamReader(conn2.getInputStream(), "UTF-8"));
     var crumb = String(br.readLine() || "").trim();
     br.close();
@@ -350,6 +350,44 @@ function getYFAuth() {
     }
   } catch(e) {}
   return _yfAuth;
+}
+
+// ── Yahoo Finance 시세 일괄 조회 (섹터용) ────────────────────────────
+function fetchQuoteBatch(symbols) {
+  if (!symbols || !symbols.length) return {};
+  var auth = getYFAuth();
+  var parts = [];
+  for (var i = 0; i < symbols.length; i++) parts.push(urlEncode(symbols[i]));
+  var raw = httpGetWithHeaders(
+    "https://query2.finance.yahoo.com/v7/finance/quote?symbols=" +
+    parts.join("%2C") +
+    (auth ? "&crumb=" + urlEncode(auth.crumb) : ""),
+    auth ? { "Cookie": auth.cookie } : {}
+  );
+  if (!raw) return {};
+  try {
+    var data = JSON.parse(raw);
+    var results = data.quoteResponse && data.quoteResponse.result;
+    if (!results) return {};
+    var map = {};
+    for (var i = 0; i < results.length; i++) {
+      var q = results[i];
+      var price = q.regularMarketPrice;
+      if (!price) continue;
+      var prev = q.regularMarketPreviousClose || price;
+      var change = price - prev;
+      map[q.symbol] = {
+        symbol:    q.symbol,
+        name:      q.shortName || q.longName || q.symbol,
+        price:     price,
+        prevClose: prev,
+        change:    change,
+        changePct: prev ? (change / prev) * 100 : 0,
+        currency:  q.currency || "USD"
+      };
+    }
+    return map;
+  } catch(e) { return {}; }
 }
 
 // ── Yahoo Finance 시세 조회 ───────────────────────────────────────────
@@ -433,10 +471,13 @@ function formatQuote(info, displayName) {
 
 // ── /지수 ─────────────────────────────────────────────────────────────
 function fetchAllIndices() {
+  var syms = [];
+  for (var i = 0; i < ALL_INDICES.length; i++) syms.push(ALL_INDICES[i].symbol);
+  var map = fetchQuoteBatch(syms);
   var lines = ["📈 주요 지수\n"];
   for (var i = 0; i < ALL_INDICES.length; i++) {
     var idx  = ALL_INDICES[i];
-    var info = fetchQuote(idx.symbol);
+    var info = map[idx.symbol];
     if (!info) { lines.push(idx.label + " 조회 실패"); continue; }
     var arrow = info.change >= 0 ? "▲" : "▼";
     var sign  = info.change >= 0 ? "+" : "";
@@ -450,8 +491,9 @@ function fetchAllIndices() {
 
 // ── /유가 ─────────────────────────────────────────────────────────────
 function fetchOilPrice() {
+  var map = fetchQuoteBatch(["CL=F", "BZ=F"]);
   function oilLine(label, symbol) {
-    var info = fetchQuote(symbol);
+    var info = map[symbol];
     if (!info) return label + ": 조회 실패";
     var arrow = info.change >= 0 ? "▲" : "▼";
     var sign  = info.change >= 0 ? "+" : "";
@@ -462,9 +504,8 @@ function fetchOilPrice() {
 }
 
 // ── 섹터 요약 ─────────────────────────────────────────────────────────
-function sectorLine(item, useTicker) {
-  var info = fetchQuote(item.s);
-  // useTicker=true 이고 순수 영문 대문자 티커일 때만 심볼 사용 (285A.T 같은 건 이름 유지)
+function sectorLine(item, useTicker, preInfo) {
+  var info = (preInfo !== undefined) ? preInfo : fetchQuote(item.s);
   var label = (useTicker && /^[A-Z]+$/.test(item.s)) ? item.s : item.n;
   if (!info) return label + "  -";
   var isKRW  = (info.currency === "KRW");
@@ -478,11 +519,15 @@ function sectorLine(item, useTicker) {
 }
 
 function buildSectorMsg(title, stocks, extra, useTicker, footer) {
+  var allItems = (extra && extra.length) ? stocks.concat(extra) : stocks;
+  var syms = [];
+  for (var i = 0; i < allItems.length; i++) syms.push(allItems[i].s);
+  var map = fetchQuoteBatch(syms);
   var lines = [title + "\n"];
-  for (var i = 0; i < stocks.length; i++) lines.push(sectorLine(stocks[i], useTicker));
+  for (var i = 0; i < stocks.length; i++) lines.push(sectorLine(stocks[i], useTicker, map[stocks[i].s] || null));
   if (extra && extra.length) {
     lines.push("");
-    for (var j = 0; j < extra.length; j++) lines.push(sectorLine(extra[j], useTicker));
+    for (var j = 0; j < extra.length; j++) lines.push(sectorLine(extra[j], useTicker, map[extra[j].s] || null));
   }
   if (footer) lines.push("\n" + footer);
   return lines.join("\n");
@@ -490,19 +535,25 @@ function buildSectorMsg(title, stocks, extra, useTicker, footer) {
 
 // ── /반도체 (한국 TOP5 + 해외 통합) ──────────────────────────────────
 function fetchCombinedSemi() {
+  var krStocks = KR_SEMI_STOCKS.slice(0, 5);
+  var allItems = krStocks.concat(INTL_SEMI_STOCKS).concat(INTL_SEMI_EXTRA);
+  var syms = [];
+  for (var i = 0; i < allItems.length; i++) syms.push(allItems[i].s);
+  var map = fetchQuoteBatch(syms);
+
   var kr = ["🇰🇷 한국 반도체 시세\n"];
-  for (var i = 0; i < 5 && i < KR_SEMI_STOCKS.length; i++) {
-    kr.push(sectorLine(KR_SEMI_STOCKS[i], false));
+  for (var i = 0; i < krStocks.length; i++) {
+    kr.push(sectorLine(krStocks[i], false, map[krStocks[i].s] || null));
   }
 
   var intl = ["🌐 해외 반도체 시세\n"];
   for (var j = 0; j < INTL_SEMI_STOCKS.length; j++) {
-    intl.push(sectorLine(INTL_SEMI_STOCKS[j], true));
+    intl.push(sectorLine(INTL_SEMI_STOCKS[j], true, map[INTL_SEMI_STOCKS[j].s] || null));
   }
   if (INTL_SEMI_EXTRA.length) {
     intl.push("");
     for (var k = 0; k < INTL_SEMI_EXTRA.length; k++) {
-      intl.push(sectorLine(INTL_SEMI_EXTRA[k], true));
+      intl.push(sectorLine(INTL_SEMI_EXTRA[k], true, map[INTL_SEMI_EXTRA[k].s] || null));
     }
   }
   intl.push("\n(본장시간 외 종가로 표기)");
