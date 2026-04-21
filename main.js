@@ -386,22 +386,22 @@ function summarizeYoutube(ytUrl) {
     var reqBody = JSON.stringify({
       contents: [{
         parts: [
-          { fileData: { mimeType: "video/mp4", fileUri: ytUrl } },
+          { fileData: { mimeType: "video/youtube", fileUri: ytUrl } },
           { text: "이 영상의 핵심 내용을 한국어로 요약해줘. 주제, 주요 포인트 3~5개, 결론 순서로 간결하게 정리해줘." }
         ]
       }]
     });
     var raw = httpPost(apiUrl, reqBody);
-    if (!raw) return "❌ API 응답 없음";
+    if (!raw) return "⚠️ API 응답 없음";
     var resp = JSON.parse(raw);
-    if (resp.error) return "❌ " + (resp.error.message || "API 오류");
+    if (resp.error) return "⚠️ " + (resp.error.message || "API 오류");
     var text = resp.candidates && resp.candidates[0] &&
                resp.candidates[0].content &&
                resp.candidates[0].content.parts &&
                resp.candidates[0].content.parts[0] &&
                resp.candidates[0].content.parts[0].text;
-    return text || "❌ 요약 실패";
-  } catch(e) { return "❌ 오류: " + String(e); }
+    return text || "⚠️ 요약 실패";
+  } catch(e) { return "⚠️ 오류: " + String(e); }
 }
 
 // ── Yahoo Finance crumb 인증 ──────────────────────────────────────────
