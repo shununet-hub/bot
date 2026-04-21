@@ -436,11 +436,11 @@ function fetchAllIndices() {
   for (var i = 0; i < ALL_INDICES.length; i++) {
     var idx  = ALL_INDICES[i];
     var info = fetchQuote(idx.symbol);
-    if (!info) { lines.push(idx.label + ": 조회 실패"); continue; }
+    if (!info) { lines.push(idx.label + " 조회 실패"); continue; }
     var arrow = info.change >= 0 ? "▲" : "▼";
     var sign  = info.change >= 0 ? "+" : "";
     lines.push(
-      idx.label + ": " + commasFloat(info.price) +
+      idx.label + " " + commasFloat(info.price) +
       " (" + arrow + sign + info.changePct.toFixed(2) + "%)"
     );
   }
@@ -461,9 +461,11 @@ function fetchOilPrice() {
 }
 
 // ── 섹터 요약 ─────────────────────────────────────────────────────────
-function sectorLine(item) {
+function sectorLine(item, useTicker) {
   var info = fetchQuote(item.s);
-  if (!info) return item.n + "  -";
+  // useTicker=true 이고 순수 영문 대문자 티커일 때만 심볼 사용 (285A.T 같은 건 이름 유지)
+  var label = (useTicker && /^[A-Z]+$/.test(item.s)) ? item.s : item.n;
+  if (!info) return label + "  -";
   var isKRW  = (info.currency === "KRW");
   var isJPY  = (info.currency === "JPY");
   var arrow  = info.change >= 0 ? "▲" : "▽";
@@ -471,16 +473,17 @@ function sectorLine(item) {
   var price  = isKRW ? commasInt(info.price)
              : isJPY ? "¥" + commasInt(info.price)
              : "$" + commasFloat(info.price);
-  return item.n + "  " + price + " (" + arrow + pct + ")";
+  return label + "  " + price + " (" + arrow + pct + ")";
 }
 
-function buildSectorMsg(title, stocks, extra) {
+function buildSectorMsg(title, stocks, extra, useTicker, footer) {
   var lines = [title + "\n"];
-  for (var i = 0; i < stocks.length; i++) lines.push(sectorLine(stocks[i]));
+  for (var i = 0; i < stocks.length; i++) lines.push(sectorLine(stocks[i], useTicker));
   if (extra && extra.length) {
     lines.push("");
-    for (var j = 0; j < extra.length; j++) lines.push(sectorLine(extra[j]));
+    for (var j = 0; j < extra.length; j++) lines.push(sectorLine(extra[j], useTicker));
   }
+  if (footer) lines.push("\n" + footer);
   return lines.join("\n");
 }
 
@@ -490,9 +493,9 @@ function handleSlash(query, replier) {
 
   if (entry === "__ALL_INDICES__") { replier.reply(fetchAllIndices()); return; }
   if (entry === "__OILPRICE__")    { replier.reply(fetchOilPrice());   return; }
-  if (entry === "__KR_SEMI__")     { replier.reply(buildSectorMsg("🇰🇷 한국 반도체 시세", KR_SEMI_STOCKS, null)); return; }
-  if (entry === "__INTL_SEMI__")   { replier.reply(buildSectorMsg("🌐 해외 반도체 시세", INTL_SEMI_STOCKS, INTL_SEMI_EXTRA)); return; }
-  if (entry === "__US_TECH__")     { replier.reply(buildSectorMsg("🇺🇸 미국 기술주 시세", US_TECH_STOCKS, null)); return; }
+  if (entry === "__KR_SEMI__")     { replier.reply(buildSectorMsg("🇰🇷 한국 반도체 시세", KR_SEMI_STOCKS, null, false, null)); return; }
+  if (entry === "__INTL_SEMI__")   { replier.reply(buildSectorMsg("🌐 해외 반도체 시세", INTL_SEMI_STOCKS, INTL_SEMI_EXTRA, true, "(본장시간 외 종가로 표기)")); return; }
+  if (entry === "__US_TECH__")     { replier.reply(buildSectorMsg("🇺🇸 미국 기술주 시세", US_TECH_STOCKS, null, false, "(본장시간 외 종가로 표기)")); return; }
 
   var symbol, displayName;
 
@@ -508,7 +511,7 @@ function handleSlash(query, replier) {
   } else if (/[가-힣]/.test(query)) {
     // 한글 → 네이버(1차) + Yahoo KR(2차) 검색
     symbol = searchKrSymbol(query);
-    if (!symbol) { replier.reply("❌ [" + query + "] 을 찾을 수 없습니다."); return; }
+    if (!symbol) { replier.reply("⚠️ [" + query + "] 을 찾을 수 없습니다."); return; }
     displayName = query;
   } else {
     // 영문 티커 직접 시도
@@ -517,7 +520,7 @@ function handleSlash(query, replier) {
   }
 
   var info = fetchQuote(symbol);
-  if (!info) { replier.reply("❌ [" + query + "] 을 찾을 수 없습니다."); return; }
+  if (!info) { replier.reply("⚠️ [" + query + "] 을 찾을 수 없습니다."); return; }
   replier.reply(formatQuote(info, displayName));
 }
 
@@ -563,8 +566,13 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       return;
     }
 
-    // 미주 멘탈케어 스터디 → 삼하마샌 (150자 이상 + 키워드)
-    if (room === "미주 멘탈케어 스터디!" && msg.length >= 150) {
+    // 미주 멘탈케어 스터디 → 삼하마샌 (100자 이상 + 키워드)
+    // 디버그: 방 이름 확인용 (동작 확인 후 아래 3줄 삭제)
+    if (room.indexOf("멘탈") !== -1 && !sent["__dbg__minju"]) {
+      sent["__dbg__minju"] = true;
+      sendToRoom("삼하마샌", "[디버그] 멘탈케어방 감지 room='" + room + "' len=" + msg.length);
+    }
+    if (room === "미주 멘탈케어 스터디!" && msg.length >= 100) {
       var msgLowerK = msg.toLowerCase();
       var hasKw = KEYWORDS.some(function(kw) {
         return msgLowerK.indexOf(kw.toLowerCase()) !== -1;
