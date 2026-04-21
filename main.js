@@ -757,7 +757,7 @@ var KEYWORDS = [
   "키오시아", "키옥시아",
   "cpu", "gpu", "젠슨황", "jensen huang",
   "openai", "chatgpt",
-  "claude", "anthropic", "앤트로픽", "엔트로픽", "클로드",
+  "claude", "anthropic", "앤트로픽", "엔트로픽", "앤스로픽", "엔스로픽", "클로드",
   "kalc", "kal", "crdo", "크리도"
 ];
 
