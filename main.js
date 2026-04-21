@@ -1,4 +1,6 @@
 var sent = {};
+var _yfAuth = null;
+var _yfAuthTs = 0;
 
 // ── 종목 룩업: { s: 심볼, n: 표시명 } 또는 특수 문자열 ───────────────
 var LOOKUP = {
@@ -307,12 +309,57 @@ function searchKrSymbol(query) {
   return null;
 }
 
+// ── Yahoo Finance crumb 인증 ──────────────────────────────────────────
+function getYFAuth() {
+  if (_yfAuth) return _yfAuth;
+  var now = java.lang.System.currentTimeMillis();
+  if (now - _yfAuthTs < 300000) return null; // 5분 이내 실패면 재시도 안함
+  _yfAuthTs = now;
+  var UA = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.210 Mobile Safari/537.36";
+  try {
+    // 1단계: finance.yahoo.com 접속 → 쿠키 수집
+    var conn1 = new java.net.URL("https://finance.yahoo.com/").openConnection();
+    conn1.setInstanceFollowRedirects(true);
+    conn1.setRequestProperty("User-Agent", UA);
+    conn1.setRequestProperty("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
+    conn1.setConnectTimeout(10000);
+    conn1.setReadTimeout(10000);
+    conn1.connect();
+    var cookies = [];
+    for (var i = 1; ; i++) {
+      var hk = conn1.getHeaderFieldKey(i);
+      if (!hk) break;
+      if (String(hk).toLowerCase() === "set-cookie") {
+        cookies.push(String(conn1.getHeaderField(i)).split(";")[0]);
+      }
+    }
+    try { conn1.getInputStream().close(); } catch(e2) {}
+    var cookieStr = cookies.join("; ");
+    // 2단계: crumb 획득
+    var conn2 = new java.net.URL("https://query1.finance.yahoo.com/v1/test/getcrumb").openConnection();
+    conn2.setRequestProperty("User-Agent", UA);
+    conn2.setRequestProperty("Cookie", cookieStr);
+    conn2.setConnectTimeout(8000);
+    conn2.setReadTimeout(8000);
+    var br = new java.io.BufferedReader(new java.io.InputStreamReader(conn2.getInputStream(), "UTF-8"));
+    var crumb = String(br.readLine() || "").trim();
+    br.close();
+    if (crumb && crumb.length > 0) {
+      _yfAuth = { crumb: crumb, cookie: cookieStr };
+    }
+  } catch(e) {}
+  return _yfAuth;
+}
+
 // ── Yahoo Finance 시세 조회 ───────────────────────────────────────────
 function fetchQuote(symbol) {
-  var raw = httpGet(
-    "https://query1.finance.yahoo.com/v8/finance/chart/" +
+  var auth = getYFAuth();
+  var raw = httpGetWithHeaders(
+    "https://query2.finance.yahoo.com/v8/finance/chart/" +
     urlEncode(symbol) +
-    "?range=1d&interval=1d&includePrePost=false"
+    "?range=1d&interval=1d&includePrePost=false" +
+    (auth ? "&crumb=" + urlEncode(auth.crumb) : ""),
+    auth ? { "Cookie": auth.cookie } : {}
   );
   if (!raw) return null;
   try {
