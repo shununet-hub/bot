@@ -784,17 +784,28 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       }
     }
 
-    // ── 트럼프/미주 방 → 삼하마샌 전달 (소스 방에서 봇 무응답) ──
-    var isFromTrump = room.indexOf("트럼프") !== -1;
-    var isFromMiju  = room.indexOf("미주") !== -1;
+    // ── 소스 방 → 삼하마샌 전달 ──
+    var isFromTrump   = room.indexOf("트럼프") !== -1;
+    var isFromMiju    = room.indexOf("미주") !== -1 && room.indexOf("멘탈케어") === -1;
+    var isFromMental  = room.indexOf("멘탈케어") !== -1;
 
-    if (isFromTrump || isFromMiju) {
+    if (isFromTrump || isFromMiju || isFromMental) {
       var targetSess = sent["__session__삼하마샌"];
 
       if (isFromTrump && msg.length > 5) {
         var key2 = msg.substring(0, 100).replace(/\s/g, "");
         if (!sent[key2]) {
           sent[key2] = true;
+          if (targetSess) targetSess.reply(msg);
+          else Api.replyRoom("삼하마샌", msg);
+        }
+        return;
+      }
+
+      if (isFromMental && msg.length >= 100) {
+        var keyM = msg.substring(0, 100).replace(/\s/g, "");
+        if (!sent[keyM]) {
+          sent[keyM] = true;
           if (targetSess) targetSess.reply(msg);
           else Api.replyRoom("삼하마샌", msg);
         }
@@ -824,14 +835,6 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
   }
 
   if (packageName !== "org.telegram.messenger") return;
-
-  var msgLower = msg.toLowerCase();
-
-  var matched = KEYWORDS.some(function(kw) {
-    return msgLower.indexOf(kw.toLowerCase()) !== -1;
-  });
-
-  if (!matched) return;
 
   var key = msg.substring(0, 100).replace(/\s/g, "");
   if (sent[key]) return;
