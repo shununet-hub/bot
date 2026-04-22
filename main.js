@@ -745,23 +745,6 @@ function handleSlash(query, replier) {
   replier.reply(formatQuote(info, displayName));
 }
 
-// ── 전달 키워드 (카카오·텔레그램 공용) ───────────────────────────────
-var KEYWORDS = [
-  "sndk", "mu", "micron", "마이크론",
-  "fsly", "fastly", "viav", "crcl", "rklb", "pl",
-  "삼성전자", "sk하이닉스", "하이닉스", "로켓랩", "플래닛랩스",
-  "폼팩터", "버노바", "베르노바", "패슬리", "패스틀리",
-  "form", "klac", "gev", "aaoi",
-  "nvda", "엔비디아", "nvidia", "tsmc", "avgo",
-  "샌디스크", "wd", "western digital",
-  "hbm", "hbm3", "hbm4", "nand", "낸드", "dram", "디램",
-  "반도체", "ai인프라", "hbf",
-  "키오시아", "키옥시아",
-  "cpu", "gpu", "젠슨황", "jensen huang",
-  "openai", "chatgpt",
-  "claude", "anthropic", "앤트로픽", "엔트로픽", "클로드",
-  "kalc", "kal", "crdo", "크리도"
-];
 
 // ── 메인 ─────────────────────────────────────────────────────────────
 function response(room, msg, sender, isGroupChat, replier, imageDB, packageName) {
@@ -784,42 +767,6 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         replier.reply("🎬 영상 분석 중...");
         replier.reply("📝 요약\n\n" + summarizeYoutube(ytUrl));
       }
-    }
-
-    // ── 트럼프/미주 방 → 삼하마샌 전달 (소스 방에서 봇 무응답) ──
-    var isFromTrump = room.indexOf("트럼프") !== -1;
-    var isFromMiju  = room.indexOf("미주") !== -1;
-
-    if (isFromTrump || isFromMiju) {
-      var targetSess = sent["__session__삼하마샌"];
-
-      if (isFromTrump && msg.length > 5) {
-        var key2 = msg.substring(0, 100).replace(/\s/g, "");
-        if (!sent[key2]) {
-          sent[key2] = true;
-          if (targetSess) targetSess.reply(msg);
-          else Api.replyRoom("삼하마샌", msg);
-        }
-        return;
-      }
-
-      if (isFromMiju && msg.length >= 100) {
-        var msgLowerK = msg.toLowerCase();
-        var hasKw = KEYWORDS.some(function(kw) {
-          return msgLowerK.indexOf(kw.toLowerCase()) !== -1;
-        });
-        if (hasKw) {
-          var key3 = msg.substring(0, 100).replace(/\s/g, "");
-          if (!sent[key3]) {
-            sent[key3] = true;
-            if (targetSess) targetSess.reply(msg);
-            else Api.replyRoom("삼하마샌", msg);
-          }
-        }
-        return;
-      }
-
-      return;
     }
 
     return;
