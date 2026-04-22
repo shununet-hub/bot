@@ -1030,7 +1030,7 @@ function fetchCrypto() {
     var c = coins[i];
     var uInfo = usdMap[c.sym];
     var kInfo = upbitMap[c.upbit];
-    var lines = ["\n" + c.name];
+    var lines = [c.name];
     if (uInfo) {
       var uSign = uInfo.changePct >= 0 ? "+" : "";
       lines.push("$ " + commasFloat(uInfo.price) + " (" + uSign + uInfo.changePct.toFixed(2) + "%)");
@@ -1051,7 +1051,7 @@ function fetchCrypto() {
     }
     blocks.push(lines.join("\n"));
   }
-  return blocks.join("\n");
+  return blocks.join("\n\n");
 }
 
 // ── /지수 ─────────────────────────────────────────────────────────────
