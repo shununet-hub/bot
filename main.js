@@ -3,6 +3,10 @@ var _yfAuth = null;
 var _yfAuthTs = 0;
 var pendingTelegramMsgs = [];
 var GEMINI_API_KEY = "AIzaSyB86ioV8XKbJ2xe9CVCwSlugSZfaBiekDE";
+var TARGET_ROOM = "삼하마샌 주주방 (샌디스크,마이크론,삼성전자,하이닉스)";
+var quoteCache = {};
+var sectorCache = {};
+var CACHE_TTL = 120000;
 
 // ── 종목 룩업: { s: 심볼, n: 표시명 } 또는 특수 문자열 ───────────────
 var LOOKUP = {
@@ -699,13 +703,31 @@ function fetchCombinedSemi() {
 // ── /명령 처리 ────────────────────────────────────────────────────────
 function handleSlash(query, replier) {
   var entry = LOOKUP[query];
+  var now = java.lang.System.currentTimeMillis();
 
-  if (entry === "__ALL_INDICES__")   { replier.reply(fetchAllIndices());   return; }
-  if (entry === "__OILPRICE__")      { replier.reply(fetchOilPrice());     return; }
-  if (entry === "__SEMI_COMBINED__") { replier.reply(fetchCombinedSemi()); return; }
-  if (entry === "__KR_SEMI__")       { replier.reply(buildSectorMsg("🇰🇷 한국 반도체 시세", KR_SEMI_STOCKS, null, false, null)); return; }
-  if (entry === "__INTL_SEMI__")   { replier.reply(buildSectorMsg("🌐 해외 반도체 시세", INTL_SEMI_STOCKS, INTL_SEMI_EXTRA, true, "(본장시간 외 종가로 표기)")); return; }
-  if (entry === "__US_TECH__")     { replier.reply(buildSectorMsg("🇺🇸 미국 기술주 시세", US_TECH_STOCKS, null, true, "(본장시간 외 종가로 표기)")); return; }
+  // 섹터 명령 (캐시 2분)
+  var sectorKey = null;
+  if (entry === "__ALL_INDICES__")   sectorKey = query;
+  if (entry === "__OILPRICE__")      sectorKey = query;
+  if (entry === "__SEMI_COMBINED__") sectorKey = query;
+  if (entry === "__KR_SEMI__")       sectorKey = query;
+  if (entry === "__INTL_SEMI__")     sectorKey = query;
+  if (entry === "__US_TECH__")       sectorKey = query;
+
+  if (sectorKey) {
+    var sc = sectorCache[sectorKey];
+    if (sc && (now - sc.ts) < CACHE_TTL) { replier.reply(sc.msg); return; }
+    var sectorMsg;
+    if (entry === "__ALL_INDICES__")   sectorMsg = fetchAllIndices();
+    if (entry === "__OILPRICE__")      sectorMsg = fetchOilPrice();
+    if (entry === "__SEMI_COMBINED__") sectorMsg = fetchCombinedSemi();
+    if (entry === "__KR_SEMI__")       sectorMsg = buildSectorMsg("🇰🇷 한국 반도체 시세", KR_SEMI_STOCKS, null, false, null);
+    if (entry === "__INTL_SEMI__")     sectorMsg = buildSectorMsg("🌐 해외 반도체 시세", INTL_SEMI_STOCKS, INTL_SEMI_EXTRA, true, "(본장시간 외 종가로 표기)");
+    if (entry === "__US_TECH__")       sectorMsg = buildSectorMsg("🇺🇸 미국 기술주 시세", US_TECH_STOCKS, null, true, "(본장시간 외 종가로 표기)");
+    sectorCache[sectorKey] = { msg: sectorMsg, ts: now };
+    replier.reply(sectorMsg);
+    return;
+  }
 
   // 디버그: 현재 봇이 인식 중인 방 목록
   if (query === "세션") {
@@ -723,11 +745,20 @@ function handleSlash(query, replier) {
     symbol      = entry.s;
     displayName = entry.n;
   } else if (/^\d{6}$/.test(query)) {
+    var cacheKey6 = query + ".KS";
+    var cached6 = quoteCache[cacheKey6];
+    if (cached6 && (now - cached6.ts) < CACHE_TTL) { replier.reply(formatQuote(cached6.info, null)); return; }
     var ksInfo = fetchQuote(query + ".KS") || fetchNaverQuote(query, query + ".KS");
-    if (ksInfo) { replier.reply(formatQuote(ksInfo, null)); return; }
+    if (ksInfo) {
+      quoteCache[cacheKey6] = { info: ksInfo, ts: now };
+      replier.reply(formatQuote(ksInfo, null));
+      return;
+    }
     symbol      = query + ".KQ";
     displayName = null;
   } else if (/[가-힣]/.test(query)) {
+    var cachedKr = quoteCache["kr_" + query];
+    if (cachedKr && (now - cachedKr.ts) < CACHE_TTL) { replier.reply(formatQuote(cachedKr.info, query)); return; }
     symbol = searchKrSymbol(query);
     if (!symbol) { replier.reply("⚠️ [" + query + "] 을 찾을 수 없습니다."); return; }
     displayName = query;
@@ -736,11 +767,20 @@ function handleSlash(query, replier) {
     displayName = null;
   }
 
+  var cachedQ = quoteCache[symbol];
+  if (cachedQ && (now - cachedQ.ts) < CACHE_TTL) {
+    replier.reply(formatQuote(cachedQ.info, displayName));
+    return;
+  }
+
   var info = fetchQuote(symbol);
   if (!info && /\.(KS|KQ)$/.test(symbol)) {
     info = fetchNaverQuote(symbol.replace(/\.(KS|KQ)$/, ""), symbol);
   }
   if (!info) { replier.reply("⚠️ [" + query + "] 을 찾을 수 없습니다."); return; }
+
+  var cacheKey = (/[가-힣]/.test(query)) ? ("kr_" + query) : symbol;
+  quoteCache[cacheKey] = { info: info, ts: now };
   replier.reply(formatQuote(info, displayName));
 }
 
@@ -775,7 +815,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
     }
 
     // ── 삼하마샌 세션 생기면 대기 메시지 전송 ──
-    if (room === "삼하마샌" && pendingTelegramMsgs.length > 0) {
+    if (room.indexOf("삼하마샌") !== -1 && pendingTelegramMsgs.length > 0) {
       var toSend = pendingTelegramMsgs.splice(0);
       for (var pi = 0; pi < toSend.length; pi++) {
         replier.reply(toSend[pi]);
@@ -800,9 +840,9 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         var keyM = msg.substring(0, 100).replace(/\s/g, "");
         if (!sent[keyM]) {
           sent[keyM] = true;
-          var targetSess = sent["__session__삼하마샌"];
+          var targetSess = sent["__session__" + TARGET_ROOM];
           if (targetSess) targetSess.reply(msg);
-          else Api.replyRoom("삼하마샌", msg);
+          else Api.replyRoom(TARGET_ROOM, msg);
         }
       }
       return;
@@ -821,8 +861,8 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
 
   java.lang.Thread.sleep(2000);
 
-  if (sent["__session__삼하마샌"]) {
-    sendToRoom("삼하마샌", msg);
+  if (sent["__session__" + TARGET_ROOM]) {
+    sendToRoom(TARGET_ROOM, msg);
   } else {
     pendingTelegramMsgs.push(msg);
     if (pendingTelegramMsgs.length === 1) {
