@@ -3,7 +3,7 @@ var _yfAuth = null;
 var _tgSeen = {};       // Telegram 중복 방지 전용
 var _tgSeenKeys = [];   // FIFO 순서 추적 (최대 1000개)
 var _yfAuthTs = 0;
-var GEMINI_API_KEY = "AIzaSyAuhEhz1AmQ0_PniGWkqzAx8qSrl08eyVc";
+var GEMINI_API_KEY = "AIzaSyA0g6qtviLc66zGKN5uwZLZhYJsUpRYX2E";
 
 // ── 종목 룩업: { s: 심볼, n: 표시명 } 또는 특수 문자열 ───────────────
 var LOOKUP = {
@@ -384,7 +384,7 @@ function extractYoutubeUrl(msg) {
 // ── Gemini로 YouTube 영상 요약 ────────────────────────────────────────
 function summarizeYoutube(ytUrl) {
   try {
-    var apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-latest:generateContent?key=" + GEMINI_API_KEY;
+    var apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + GEMINI_API_KEY;
     var reqBody = JSON.stringify({
       contents: [{
         parts: [
