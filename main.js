@@ -10,6 +10,11 @@ var _tgThread = null;
 // ── 종목 룩업: { s: 심볼, n: 표시명 } 또는 특수 문자열 ───────────────
 var LOOKUP = {
   "환율":       "__EXCHANGE__",
+  "금속":       "__METAL__",
+  "원자재":     "__COMMODITY__",
+  "금리":       "__WORLDRATE__",
+  "국채":       "__USTREASURY__",
+  "코인":       "__CRYPTO__",
   "지수":       "__ALL_INDICES__",
   "유가":       "__OILPRICE__",
   "반도체":     "__SEMI_COMBINED__",
@@ -890,11 +895,163 @@ function fetchExchangeRates() {
     var arrow  = change >= 0 ? "▲" : "▼";
     var sign   = change >= 0 ? "+" : "";
     lines.push(
-      p.unit + " = ₩" + commasInt(rate) +
+      p.unit + " = ₩ " + commasInt(rate) +
       " (" + arrow + sign + Math.abs(pct).toFixed(2) + "%)"
     );
   }
   return lines.join("\n");
+}
+
+// ── /금속 ─────────────────────────────────────────────────────────────
+function fetchMetals() {
+  var items = [
+    { s: "GC=F", n: "금(Gold)      " },
+    { s: "SI=F", n: "은(Silver)    " },
+    { s: "PL=F", n: "백금(Platinum)" },
+    { s: "HG=F", n: "구리(Copper)  " },
+    { s: "PA=F", n: "팔라듐        " },
+  ];
+  var syms = [];
+  for (var i = 0; i < items.length; i++) syms.push(items[i].s);
+  var map = fetchQuoteBatch(syms);
+  var lines = ["🥇 금속 시세\n"];
+  for (var i = 0; i < items.length; i++) {
+    var it = items[i];
+    var info = map[it.s];
+    if (!info) { lines.push(it.n + "  -"); continue; }
+    var arrow = info.change >= 0 ? "▲" : "▽";
+    var sign  = info.change >= 0 ? "+" : "";
+    lines.push(it.n + "  $" + commasFloat(info.price) +
+      " (" + arrow + sign + info.changePct.toFixed(2) + "%)");
+  }
+  return lines.join("\n");
+}
+
+// ── /원자재 ───────────────────────────────────────────────────────────
+function fetchCommodities() {
+  var items = [
+    { s: "CL=F", n: "WTI원유  " },
+    { s: "BZ=F", n: "브렌트유 " },
+    { s: "NG=F", n: "천연가스 " },
+    { s: "ZW=F", n: "밀(Wheat)" },
+    { s: "ZC=F", n: "옥수수   " },
+    { s: "ZS=F", n: "대두     " },
+  ];
+  var syms = [];
+  for (var i = 0; i < items.length; i++) syms.push(items[i].s);
+  var map = fetchQuoteBatch(syms);
+  var lines = ["📦 원자재 시세\n"];
+  for (var i = 0; i < items.length; i++) {
+    var it = items[i];
+    var info = map[it.s];
+    if (!info) { lines.push(it.n + "  -"); continue; }
+    var arrow = info.change >= 0 ? "▲" : "▽";
+    var sign  = info.change >= 0 ? "+" : "";
+    lines.push(it.n + "  $" + commasFloat(info.price) +
+      " (" + arrow + sign + info.changePct.toFixed(2) + "%)");
+  }
+  return lines.join("\n");
+}
+
+// ── /금리 (세계 국채 금리) ────────────────────────────────────────────
+function fetchWorldRates() {
+  var items = [
+    { s: "^TNX",      n: "미국 10Y" },
+    { s: "^TYX",      n: "미국 30Y" },
+    { s: "DE10YT=RR", n: "독일 10Y" },
+    { s: "JP10YT=RR", n: "일본 10Y" },
+    { s: "GB10YT=RR", n: "영국 10Y" },
+  ];
+  var syms = [];
+  for (var i = 0; i < items.length; i++) syms.push(items[i].s);
+  var map = fetchQuoteBatch(syms);
+  var lines = ["📉 세계 국채 금리\n"];
+  for (var i = 0; i < items.length; i++) {
+    var it = items[i];
+    var info = map[it.s];
+    if (!info) { lines.push(it.n + "  조회 실패"); continue; }
+    var arrow = info.change >= 0 ? "▲" : "▼";
+    var sign  = info.change >= 0 ? "+" : "";
+    lines.push(it.n + "  " + info.price.toFixed(2) + "%" +
+      " (" + arrow + sign + Math.abs(info.change).toFixed(2) + ")");
+  }
+  return lines.join("\n");
+}
+
+// ── /국채 (미국 국채) ─────────────────────────────────────────────────
+function fetchUSTreasury() {
+  var items = [
+    { s: "^IRX", n: "3개월" },
+    { s: "^FVX", n: "5년  " },
+    { s: "^TNX", n: "10년 " },
+    { s: "^TYX", n: "30년 " },
+  ];
+  var syms = [];
+  for (var i = 0; i < items.length; i++) syms.push(items[i].s);
+  var map = fetchQuoteBatch(syms);
+  var lines = ["🏛️ 미국 국채 금리\n"];
+  for (var i = 0; i < items.length; i++) {
+    var it = items[i];
+    var info = map[it.s];
+    if (!info) { lines.push(it.n + "  조회 실패"); continue; }
+    var arrow = info.change >= 0 ? "▲" : "▼";
+    var sign  = info.change >= 0 ? "+" : "";
+    lines.push(it.n + "  " + info.price.toFixed(2) + "%" +
+      " (" + arrow + sign + Math.abs(info.change).toFixed(2) + ")");
+  }
+  return lines.join("\n");
+}
+
+// ── /코인 ─────────────────────────────────────────────────────────────
+function fetchCrypto() {
+  var coins = [
+    { sym: "BTC-USD", upbit: "KRW-BTC", name: "BTC" },
+    { sym: "ETH-USD", upbit: "KRW-ETH", name: "ETH" },
+    { sym: "SOL-USD", upbit: "KRW-SOL", name: "SOL" },
+    { sym: "XRP-USD", upbit: "KRW-XRP", name: "XRP" },
+  ];
+  var usdSyms = ["USDKRW=X"];
+  for (var i = 0; i < coins.length; i++) usdSyms.push(coins[i].sym);
+  var usdMap = fetchQuoteBatch(usdSyms);
+  var usdkrw = (usdMap["USDKRW=X"] && usdMap["USDKRW=X"].price) ? usdMap["USDKRW=X"].price : 0;
+
+  var upbitRaw = httpGet("https://api.upbit.com/v1/ticker?markets=" +
+    coins.map(function(c) { return c.upbit; }).join(","));
+  var upbitMap = {};
+  if (upbitRaw) {
+    try {
+      var arr = JSON.parse(upbitRaw);
+      for (var j = 0; j < arr.length; j++) upbitMap[arr[j].market] = arr[j];
+    } catch(e) {}
+  }
+
+  var blocks = ["🪙 코인 시세"];
+  for (var i = 0; i < coins.length; i++) {
+    var c = coins[i];
+    var uInfo = usdMap[c.sym];
+    var kInfo = upbitMap[c.upbit];
+    var lines = ["\n" + c.name];
+    if (uInfo) {
+      var uSign = uInfo.changePct >= 0 ? "+" : "";
+      lines.push("$ " + commasFloat(uInfo.price) + " (" + uSign + uInfo.changePct.toFixed(2) + "%)");
+    } else {
+      lines.push("$ 조회 실패");
+    }
+    if (kInfo) {
+      var kPct  = kInfo.change_rate * 100;
+      var kSign = kPct >= 0 ? "+" : "";
+      lines.push("₩ " + commasInt(kInfo.trade_price) + " (" + kSign + kPct.toFixed(2) + "%)");
+      if (uInfo && usdkrw) {
+        var kimchi = ((kInfo.trade_price / (uInfo.price * usdkrw)) - 1) * 100;
+        var kpSign = kimchi >= 0 ? "+" : "";
+        lines.push("김프 " + kpSign + kimchi.toFixed(2) + "%");
+      }
+    } else {
+      lines.push("₩ 조회 실패");
+    }
+    blocks.push(lines.join("\n"));
+  }
+  return blocks.join("\n");
 }
 
 // ── /지수 ─────────────────────────────────────────────────────────────
@@ -994,7 +1151,12 @@ function handleSlash(query, replier) {
   var entry = LOOKUP[query];
 
   if (entry === "__EXCHANGE__")      { replier.reply(fetchExchangeRates()); return; }
-  if (entry === "__ALL_INDICES__")   { replier.reply(fetchAllIndices());   return; }
+  if (entry === "__METAL__")         { replier.reply(fetchMetals());        return; }
+  if (entry === "__COMMODITY__")     { replier.reply(fetchCommodities());   return; }
+  if (entry === "__WORLDRATE__")     { replier.reply(fetchWorldRates());    return; }
+  if (entry === "__USTREASURY__")    { replier.reply(fetchUSTreasury());    return; }
+  if (entry === "__CRYPTO__")        { replier.reply(fetchCrypto());        return; }
+  if (entry === "__ALL_INDICES__")   { replier.reply(fetchAllIndices());    return; }
   if (entry === "__OILPRICE__")      { replier.reply(fetchOilPrice());     return; }
   if (entry === "__SEMI_COMBINED__") { replier.reply(fetchCombinedSemi()); return; }
   if (entry === "__KR_SEMI__")       { replier.reply(buildSectorMsg("🇰🇷 한국 반도체 시세", KR_SEMI_STOCKS, null, false, null)); return; }
