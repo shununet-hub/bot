@@ -1,6 +1,7 @@
 var sent = {};
 var _yfAuth = null;
 var _yfAuthTs = 0;
+var pendingTelegramMsgs = [];
 var GEMINI_API_KEY = "AIzaSyB86ioV8XKbJ2xe9CVCwSlugSZfaBiekDE";
 
 // ── 종목 룩업: { s: 심볼, n: 표시명 } 또는 특수 문자열 ───────────────
@@ -773,6 +774,15 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       return;
     }
 
+    // ── 삼하마샌 세션 생기면 대기 메시지 전송 ──
+    if (room === "삼하마샌" && pendingTelegramMsgs.length > 0) {
+      var toSend = pendingTelegramMsgs.splice(0);
+      for (var pi = 0; pi < toSend.length; pi++) {
+        replier.reply(toSend[pi]);
+        if (pi < toSend.length - 1) java.lang.Thread.sleep(400);
+      }
+    }
+
     // ── YouTube 링크 자동 요약 ──
     var ytUrl = extractYoutubeUrl(msg);
     if (ytUrl) {
@@ -810,5 +820,14 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
   cleanSent();
 
   java.lang.Thread.sleep(2000);
-  sendToRoom("삼하마샌", msg);
+
+  if (sent["__session__삼하마샌"]) {
+    sendToRoom("삼하마샌", msg);
+  } else {
+    pendingTelegramMsgs.push(msg);
+    if (pendingTelegramMsgs.length === 1) {
+      var notifySess = sent["__session__딸이"] || sent["__session__사또밥"];
+      if (notifySess) notifySess.reply("📬 삼하마샌 세션 없음. 삼하마샌에 아무 메시지나 보내주세요. (대기: " + pendingTelegramMsgs.length + "개)");
+    }
+  }
 }
