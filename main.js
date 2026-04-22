@@ -1,6 +1,7 @@
 var sent = {};
 var _yfAuth = null;
 var _yfAuthTs = 0;
+var _dbgLog = [];
 
 // ── 종목 룩업: { s: 심볼, n: 표시명 } 또는 특수 문자열 ───────────────
 var LOOKUP = {
@@ -674,13 +675,18 @@ function handleSlash(query, replier) {
   if (entry === "__INTL_SEMI__")   { replier.reply(buildSectorMsg("🌐 해외 반도체 시세", INTL_SEMI_STOCKS, INTL_SEMI_EXTRA, true, "(본장시간 외 종가로 표기)")); return; }
   if (entry === "__US_TECH__")     { replier.reply(buildSectorMsg("🇺🇸 미국 기술주 시세", US_TECH_STOCKS, null, true, "(본장시간 외 종가로 표기)")); return; }
 
-  // 디버그: 현재 봇이 인식 중인 방 목록
   if (query === "세션") {
     var rooms = [];
     for (var k in sent) {
       if (k.indexOf("__session__") === 0) rooms.push(k.replace("__session__", ""));
     }
     replier.reply("📋 활성 세션 방 목록:\n" + (rooms.length ? rooms.join("\n") : "없음"));
+    return;
+  }
+
+  if (query === "디버그") {
+    var log = _dbgLog.slice(-20);
+    replier.reply("🔍 최근 수신 로그 (최대 20건):\n\n" + (log.length ? log.join("\n") : "없음"));
     return;
   }
 
@@ -731,6 +737,10 @@ var KEYWORDS = [
 
 // ── 메인 ─────────────────────────────────────────────────────────────
 function response(room, msg, sender, isGroupChat, replier, imageDB, packageName) {
+
+  // 모든 수신 메시지 로깅 (최근 100건 유지)
+  _dbgLog.push("[" + packageName + "] " + room + ": " + msg.substring(0, 40).replace(/\n/g, " "));
+  if (_dbgLog.length > 100) _dbgLog.shift();
 
   if (packageName === "com.kakao.talk") {
     sent["__session__" + room] = replier;
@@ -787,7 +797,11 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
     return;
   }
 
-  if (packageName !== "org.telegram.messenger") return;
+  var isTelegram = packageName === "org.telegram.messenger" ||
+                   packageName === "org.thunderdog.challegram" ||
+                   packageName === "org.telegram.messenger.beta" ||
+                   (packageName && packageName.indexOf("telegram") !== -1);
+  if (!isTelegram) return;
 
   var msgLower = msg.toLowerCase();
 
