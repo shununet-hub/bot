@@ -15,6 +15,16 @@ var LOOKUP = {
   "한국반도체": "__KR_SEMI__",
   "해외반도체": "__INTL_SEMI__",
   "기술주":     "__US_TECH__",
+  "조선":       "__SHIPBUILDING__",
+  "방산":       "__DEFENSE__",
+  "화학":       "__CHEM__",
+  "건설":       "__CONSTRUCTION__",
+  "에너지":     "__ENERGY__",
+  "로봇":       "__ROBOT__",
+  "바이오":     "__BIO__",
+  "자동차":     "__AUTO__",
+  "금융":       "__FINANCE__",
+  "철강":       "__STEEL__",
 
   // 지수
   "코스피":   { s: "^KS11",  n: "코스피" },
@@ -200,6 +210,106 @@ var US_TECH_STOCKS = [
   { s: "ORCL",  n: "Oracle" },
 ];
 
+var SHIPBUILDING_STOCKS = [
+  { s: "267250.KS", n: "HD현대" },
+  { s: "009540.KS", n: "한국조선해양" },
+  { s: "329180.KS", n: "현대중공업" },
+  { s: "042660.KS", n: "한화오션" },
+  { s: "010140.KS", n: "삼성중공업" },
+  { s: "097230.KS", n: "HJ중공업" },
+  { s: "100090.KS", n: "SK오션플랜트" },
+];
+
+var DEFENSE_STOCKS = [
+  { s: "012450.KS", n: "한화에어로스페이스" },
+  { s: "079550.KS", n: "LIG넥스원" },
+  { s: "064350.KS", n: "현대로템" },
+  { s: "272210.KS", n: "한화시스템" },
+  { s: "047810.KS", n: "한국항공우주" },
+  { s: "103140.KS", n: "풍산" },
+  { s: "065420.KQ", n: "빅텍" },
+];
+
+var CHEM_STOCKS = [
+  { s: "051910.KS", n: "LG화학" },
+  { s: "011170.KS", n: "롯데케미칼" },
+  { s: "011780.KS", n: "금호석유" },
+  { s: "009830.KS", n: "한화솔루션" },
+  { s: "011790.KS", n: "SKC" },
+  { s: "120110.KS", n: "코오롱인더" },
+  { s: "298050.KS", n: "효성화학" },
+];
+
+var CONSTRUCTION_STOCKS = [
+  { s: "000720.KS", n: "현대건설" },
+  { s: "006360.KS", n: "GS건설" },
+  { s: "047040.KS", n: "대우건설" },
+  { s: "028050.KS", n: "삼성엔지니어링" },
+  { s: "294870.KS", n: "HDC현대산업개발" },
+  { s: "375500.KS", n: "DL이앤씨" },
+  { s: "000215.KS", n: "DL" },
+];
+
+var ENERGY_STOCKS = [
+  { s: "015760.KS", n: "한국전력" },
+  { s: "036460.KS", n: "한국가스공사" },
+  { s: "096770.KS", n: "SK이노베이션" },
+  { s: "010950.KS", n: "S-OIL" },
+  { s: "034020.KS", n: "두산에너빌리티" },
+  { s: "051600.KS", n: "한전KPS" },
+  { s: "078930.KS", n: "GS" },
+];
+
+var ROBOT_STOCKS = [
+  { s: "454910.KS", n: "두산로보틱스" },
+  { s: "277810.KQ", n: "레인보우로보틱스" },
+  { s: "090360.KQ", n: "로보스타" },
+  { s: "056080.KQ", n: "유진로봇" },
+  { s: "108490.KQ", n: "로보티즈" },
+  { s: "307950.KS", n: "현대오토에버" },
+  { s: "389550.KQ", n: "에스비비테크" },
+];
+
+var BIO_STOCKS = [
+  { s: "207940.KS", n: "삼성바이오로직스" },
+  { s: "068270.KS", n: "셀트리온" },
+  { s: "000100.KS", n: "유한양행" },
+  { s: "128940.KS", n: "한미약품" },
+  { s: "028300.KQ", n: "HLB" },
+  { s: "196170.KQ", n: "알테오젠" },
+  { s: "145020.KQ", n: "휴젤" },
+];
+
+var AUTO_STOCKS = [
+  { s: "005380.KS", n: "현대차" },
+  { s: "000270.KS", n: "기아" },
+  { s: "012330.KS", n: "현대모비스" },
+  { s: "204320.KS", n: "HL만도" },
+  { s: "011210.KS", n: "현대위아" },
+  { s: "086280.KS", n: "현대글로비스" },
+  { s: "161390.KS", n: "한국타이어앤테크놀로지" },
+];
+
+var FINANCE_STOCKS = [
+  { s: "105560.KS", n: "KB금융" },
+  { s: "055550.KS", n: "신한지주" },
+  { s: "086790.KS", n: "하나금융지주" },
+  { s: "316140.KS", n: "우리금융지주" },
+  { s: "138040.KS", n: "메리츠금융지주" },
+  { s: "032830.KS", n: "삼성생명" },
+  { s: "000810.KS", n: "삼성화재" },
+];
+
+var STEEL_STOCKS = [
+  { s: "005490.KS", n: "POSCO홀딩스" },
+  { s: "004020.KS", n: "현대제철" },
+  { s: "010130.KS", n: "고려아연" },
+  { s: "001230.KS", n: "동국제강" },
+  { s: "001430.KS", n: "세아베스틸지주" },
+  { s: "000670.KS", n: "영풍" },
+  { s: "016380.KS", n: "동부제철" },
+];
+
 // ── URL 인코딩 ────────────────────────────────────────────────────────
 function urlEncode(str) {
   try {
@@ -284,13 +394,17 @@ function httpPost(url, jsonBody) {
 
 // ── 특정 방으로 메시지 전송 (세션 replier 우선, 3000자 단위 분할) ─────
 function sendToRoom(roomName, message) {
+  var r = sent["__session__" + roomName];
+  if (r) {
+    r.reply(message);
+    return;
+  }
+  // 세션 없을 때만 청크 분할 (Api.replyRoom은 바이트 한도 있음)
   var MAX = 300;
   var i = 0;
   while (i < message.length) {
     var chunk = message.substring(i, Math.min(i + MAX, message.length));
-    var r = sent["__session__" + roomName];
-    if (r) r.reply(chunk);
-    else Api.replyRoom(roomName, chunk);
+    Api.replyRoom(roomName, chunk);
     i += MAX;
     if (i < message.length) java.lang.Thread.sleep(800);
   }
@@ -740,8 +854,18 @@ function handleSlash(query, replier) {
   if (entry === "__OILPRICE__")      { replier.reply(fetchOilPrice());     return; }
   if (entry === "__SEMI_COMBINED__") { replier.reply(fetchCombinedSemi()); return; }
   if (entry === "__KR_SEMI__")       { replier.reply(buildSectorMsg("🇰🇷 한국 반도체 시세", KR_SEMI_STOCKS, null, false, null)); return; }
-  if (entry === "__INTL_SEMI__")   { replier.reply(buildSectorMsg("🌐 해외 반도체 시세", INTL_SEMI_STOCKS, INTL_SEMI_EXTRA, true, "(본장시간 외 종가로 표기)")); return; }
-  if (entry === "__US_TECH__")     { replier.reply(buildSectorMsg("🇺🇸 미국 기술주 시세", US_TECH_STOCKS, null, true, "(본장시간 외 종가로 표기)")); return; }
+  if (entry === "__INTL_SEMI__")     { replier.reply(buildSectorMsg("🌐 해외 반도체 시세", INTL_SEMI_STOCKS, INTL_SEMI_EXTRA, true, "(본장시간 외 종가로 표기)")); return; }
+  if (entry === "__US_TECH__")       { replier.reply(buildSectorMsg("🇺🇸 미국 기술주 시세", US_TECH_STOCKS, null, true, "(본장시간 외 종가로 표기)")); return; }
+  if (entry === "__SHIPBUILDING__")  { replier.reply(buildSectorMsg("🇰🇷 조선주 시세", SHIPBUILDING_STOCKS, null, false, null)); return; }
+  if (entry === "__DEFENSE__")       { replier.reply(buildSectorMsg("🇰🇷 방산주 시세", DEFENSE_STOCKS, null, false, null)); return; }
+  if (entry === "__CHEM__")          { replier.reply(buildSectorMsg("🇰🇷 화학주 시세", CHEM_STOCKS, null, false, null)); return; }
+  if (entry === "__CONSTRUCTION__")  { replier.reply(buildSectorMsg("🇰🇷 건설주 시세", CONSTRUCTION_STOCKS, null, false, null)); return; }
+  if (entry === "__ENERGY__")        { replier.reply(buildSectorMsg("🇰🇷 에너지주 시세", ENERGY_STOCKS, null, false, null)); return; }
+  if (entry === "__ROBOT__")         { replier.reply(buildSectorMsg("🇰🇷 로봇주 시세", ROBOT_STOCKS, null, false, null)); return; }
+  if (entry === "__BIO__")           { replier.reply(buildSectorMsg("🇰🇷 바이오주 시세", BIO_STOCKS, null, false, null)); return; }
+  if (entry === "__AUTO__")          { replier.reply(buildSectorMsg("🇰🇷 자동차주 시세", AUTO_STOCKS, null, false, null)); return; }
+  if (entry === "__FINANCE__")       { replier.reply(buildSectorMsg("🇰🇷 금융주 시세", FINANCE_STOCKS, null, false, null)); return; }
+  if (entry === "__STEEL__")         { replier.reply(buildSectorMsg("🇰🇷 철강주 시세", STEEL_STOCKS, null, false, null)); return; }
 
   if (query === "세션") {
     var rooms = [];
