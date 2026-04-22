@@ -825,15 +825,12 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
 
   if (packageName !== "org.telegram.messenger") return;
 
-  var msgLower = msg.toLowerCase();
+  // Python relay format: "[채널명]\n실제메시지"
+  var actualMsg = msg;
+  var relayMatch = msg.match(/^\[([^\]]+)\]\n([\s\S]+)/);
+  if (relayMatch) actualMsg = relayMatch[2];
 
-  var matched = KEYWORDS.some(function(kw) {
-    return msgLower.indexOf(kw.toLowerCase()) !== -1;
-  });
-
-  if (!matched) return;
-
-  var key = msg.substring(0, 100).replace(/\s/g, "");
+  var key = actualMsg.substring(0, 100).replace(/\s/g, "");
   if (sent[key]) return;
   sent[key] = true;
 
