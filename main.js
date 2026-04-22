@@ -387,7 +387,7 @@ function summarizeYoutube(ytUrl) {
       contents: [{
         parts: [
           { fileData: { mimeType: "video/mp4", fileUri: ytUrl } },
-          { text: "이 영상의 핵심 내용을 한국어로 요약해줘. 주제, 주요 포인트 3~5개, 결론 순서로 간결하게 정리해줘." }
+          { text: "이 영상을 한국어로 요약해줘. 아래 형식 엄수:\n- **같은 마크다운 절대 사용 금지**\n- 이모지로 섹션 구분\n- 각 섹션 사이 빈 줄 한 줄\n- 전체 10줄 이내, 간결하게\n\n형식:\n🎯 주제\n(한 줄)\n\n📌 핵심 포인트\n• ...\n• ...\n• ...\n\n💡 결론\n(한 줄)" }
         ]
       }]
     });
