@@ -2,6 +2,7 @@ var sent = {};
 var _yfAuth = null;
 var _yfAuthTs = 0;
 var _dbgLog = [];
+var _roomMap = {}; // 패턴 → 실제 방 전체 이름
 
 // ── 종목 룩업: { s: 심볼, n: 표시명 } 또는 특수 문자열 ───────────────
 var LOOKUP = {
@@ -745,6 +746,12 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
   if (packageName === "com.kakao.talk") {
     sent["__session__" + room] = replier;
 
+    // 방 이름 패턴 매핑 (부분 이름 → 실제 전체 이름)
+    var WATCH_PATTERNS = ["삼하마샌", "사또밥", "트럼프", "미주"];
+    for (var wp = 0; wp < WATCH_PATTERNS.length; wp++) {
+      if (room.indexOf(WATCH_PATTERNS[wp]) !== -1) _roomMap[WATCH_PATTERNS[wp]] = room;
+    }
+
     if (msg.charAt(0) === "/" && msg.trim().length > 1) {
       var cmd = msg.trim().slice(1).toLowerCase();
       handleSlash(cmd, replier);
@@ -760,10 +767,12 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
 
       function forwardMsg(m) {
         for (var t = 0; t < TARGET_ROOMS.length; t++) {
-          var tRoom = TARGET_ROOMS[t];
-          var tSess = sent["__session__" + tRoom];
+          var pattern = TARGET_ROOMS[t];
+          // 실제 방 전체 이름으로 세션 조회 (특수문자/이모티콘 포함 이름 대응)
+          var actualRoom = _roomMap[pattern] || pattern;
+          var tSess = sent["__session__" + actualRoom];
           if (tSess) tSess.reply(m);
-          else Api.replyRoom(tRoom, m);
+          else Api.replyRoom(actualRoom, m);
         }
       }
 
@@ -818,5 +827,5 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
   cleanSent();
 
   java.lang.Thread.sleep(2000);
-  sendToRoom("삼하마샌", msg);
+  sendToRoom(_roomMap["삼하마샌"] || "삼하마샌", msg);
 }
