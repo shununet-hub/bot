@@ -284,7 +284,7 @@ function httpPost(url, jsonBody) {
 
 // ── 특정 방으로 메시지 전송 (세션 replier 우선, 3000자 단위 분할) ─────
 function sendToRoom(roomName, message) {
-  var MAX = 3000;
+  var MAX = 1000;
   var i = 0;
   while (i < message.length) {
     var chunk = message.substring(i, Math.min(i + MAX, message.length));
