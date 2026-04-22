@@ -747,7 +747,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
     sent["__session__" + room] = replier;
 
     // 방 이름 패턴 매핑 (부분 이름 → 실제 전체 이름)
-    var WATCH_PATTERNS = ["삼성전자", "삼전", "버노바", "미주"];
+    var WATCH_PATTERNS = ["삼성전자", "버노바", "미주"];
     for (var wp = 0; wp < WATCH_PATTERNS.length; wp++) {
       if (room.indexOf(WATCH_PATTERNS[wp]) !== -1) _roomMap[WATCH_PATTERNS[wp]] = room;
     }
@@ -763,7 +763,8 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
     var isFromMiju   = room.indexOf("미주") !== -1;
 
     if (isFromEnergy || isFromMiju) {
-      var TARGET_ROOMS = ["삼성전자", "삼전"];
+      // 타겟 방 추가할 때 여기에 패턴 추가
+      var TARGET_ROOMS = ["삼성전자"];
 
       function forwardMsg(m) {
         for (var t = 0; t < TARGET_ROOMS.length; t++) {
