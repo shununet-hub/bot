@@ -178,6 +178,7 @@ var LOOKUP = {
   "셀트리온헬스케어": { s: "091990.KQ", n: "셀트리온헬스케어" },
   "에이치엘비":       { s: "028300.KQ", n: "HLB" },
   "hlb":              { s: "028300.KQ", n: "HLB" },
+  "툴젠":             { s: "199800.KQ", n: "툴젠" },
 };
 
 var ALL_INDICES = [
@@ -590,12 +591,9 @@ function cleanSent() {
 function searchKrSymbol(query) {
   // 1차: 네이버 금융 자동완성
   try {
-    var uri = new java.net.URI(
-      "https", "ac.finance.naver.com", "/ac",
-      "q=" + query + "&q_enc=UTF-8&target=stock&with_article=N",
-      null
-    );
-    var raw = httpGetWithHeaders(uri.toURL().toString(), {
+    var raw = httpGetWithHeaders(
+      "https://ac.finance.naver.com/ac?q=" + urlEncode(query) + "&q_enc=UTF-8&target=stock&with_article=N",
+      {
       "Referer":          "https://finance.naver.com/",
       "Accept":           "application/json, text/javascript, */*; q=0.01",
       "Accept-Language":  "ko-KR,ko;q=0.9",
@@ -654,7 +652,11 @@ function searchKrSymbol(query) {
   try {
     var raw3 = httpGetWithHeaders(
       "https://m.stock.naver.com/api/search/all?keyword=" + urlEncode(query) + "&page=1&pageSize=5",
-      { "Referer": "https://m.stock.naver.com/", "Accept": "application/json" }
+      {
+        "Referer":    "https://m.stock.naver.com/",
+        "Accept":     "application/json",
+        "User-Agent": "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120.0.0.0 Mobile Safari/537.36"
+      }
     );
     if (raw3) {
       var data3 = JSON.parse(raw3);
@@ -662,14 +664,33 @@ function searchKrSymbol(query) {
                   : (data3.items ? data3.items : null);
       if (stocks3 && stocks3.length) {
         var it3 = stocks3[0];
-        var code3 = String(it3.itemCode || it3.code || "").trim();
-        var mkt3  = String(it3.stockExchangeType || it3.market || "");
+        var code3 = String(it3.itemCode || it3.code || it3.symbolCode || "").trim();
+        var mkt3  = String(it3.stockExchangeType || it3.market || it3.typeCode || "").toUpperCase();
         if (/^\d{6}$/.test(code3)) {
-          return code3 + ((mkt3.indexOf("KOSDAQ") !== -1 || mkt3.indexOf("코스닥") !== -1) ? ".KQ" : ".KS");
+          return code3 + ((mkt3.indexOf("KOSDAQ") !== -1) ? ".KQ" : ".KS");
         }
       }
     }
   } catch (e3) { /* 3차도 실패 */ }
+
+  // 4차: 네이버 금융 검색 HTML에서 종목코드 파싱
+  try {
+    var raw4 = httpGetWithHeaders(
+      "https://finance.naver.com/search/searchList.nhn?query=" + urlEncode(query),
+      {
+        "Referer":    "https://finance.naver.com/",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
+      }
+    );
+    if (raw4) {
+      var codeMatch4 = raw4.match(/itemCode=(\d{6})/);
+      if (codeMatch4) {
+        var code4    = codeMatch4[1];
+        var isKosdaq = raw4.indexOf("KOSDAQ") !== -1 || raw4.indexOf("코스닥") !== -1;
+        return code4 + (isKosdaq ? ".KQ" : ".KS");
+      }
+    }
+  } catch (e4) { /* 4차도 실패 */ }
 
   return null;
 }
