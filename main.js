@@ -1,5 +1,7 @@
 var sent = {};
 var _yfAuth = null;
+var _tgSeen = {};       // Telegram 중복 방지 전용
+var _tgSeenKeys = [];   // FIFO 순서 추적 (최대 1000개)
 var _yfAuthTs = 0;
 var GEMINI_API_KEY = "AIzaSyAuhEhz1AmQ0_PniGWkqzAx8qSrl08eyVc";
 
@@ -825,17 +827,19 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
 
   if (packageName !== "org.telegram.messenger") return;
 
-  // Python relay format: "[채널명]\n실제메시지"
+  // Python relay format: "[채널명]\n실제메시지" → 본문만 추출
   var actualMsg = msg;
   var relayMatch = msg.match(/^\[([^\]]+)\]\n([\s\S]+)/);
   if (relayMatch) actualMsg = relayMatch[2];
 
   var key = actualMsg.substring(0, 100).replace(/\s/g, "");
-  if (sent[key]) return;
-  sent[key] = true;
-
-  cleanSent();
+  if (_tgSeen[key]) return;
+  _tgSeen[key] = true;
+  _tgSeenKeys.push(key);
+  if (_tgSeenKeys.length > 1000) {
+    delete _tgSeen[_tgSeenKeys.shift()];
+  }
 
   java.lang.Thread.sleep(2000);
-  sendToRoom("삼하마샌", msg);
+  sendToRoom("삼하마샌", actualMsg);
 }
