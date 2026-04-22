@@ -844,32 +844,31 @@ function formatQuote(info, displayName) {
   var isJPY   = (info.currency === "JPY");
   var isIndex = (info.symbol.charAt(0) === "^");
   var arrow   = info.change >= 0 ? "▲" : "▼";
-  var sign    = info.change >= 0 ? "+" : "";
   var dispSym = info.symbol.replace(/\.(KS|KQ|T)$/, "").replace(/^\^/, "");
   var name    = displayName || info.name;
 
   var priceStr, chgStr, prevStr;
   if (isKRW) {
     priceStr = "₩" + commasInt(info.price);
-    chgStr   = sign + commasInt(info.change);
+    chgStr   = commasInt(Math.abs(info.change));
     prevStr  = "₩" + commasInt(info.prevClose);
   } else if (isJPY) {
     priceStr = "¥" + commasInt(info.price);
-    chgStr   = sign + commasInt(info.change);
+    chgStr   = commasInt(Math.abs(info.change));
     prevStr  = "¥" + commasInt(info.prevClose);
   } else if (isIndex) {
     priceStr = commasFloat(info.price);
-    chgStr   = sign + commasFloat(Math.abs(info.change));
+    chgStr   = commasFloat(Math.abs(info.change));
     prevStr  = commasFloat(info.prevClose);
   } else {
     priceStr = "$" + commasFloat(info.price);
-    chgStr   = sign + commasFloat(Math.abs(info.change));
+    chgStr   = commasFloat(Math.abs(info.change));
     prevStr  = "$" + commasFloat(info.prevClose);
   }
 
   return "📊 " + name + " (" + dispSym + ")\n\n" +
     "현재가: " + priceStr + "\n" +
-    arrow + " " + chgStr + " (" + sign + info.changePct.toFixed(2) + "%)\n" +
+    arrow + " " + chgStr + " (" + Math.abs(info.changePct).toFixed(2) + "%)\n" +
     "전일종가: " + prevStr;
 }
 
@@ -896,10 +895,9 @@ function fetchExchangeRates() {
     var change = rate - prev;
     var pct    = prev ? (change / prev) * 100 : 0;
     var arrow  = change >= 0 ? "▲" : "▼";
-    var sign   = change >= 0 ? "+" : "";
     lines.push(
       p.unit + " ₩ " + commasInt(rate) +
-      " (" + arrow + sign + Math.abs(pct).toFixed(2) + "%)"
+      " (" + arrow + Math.abs(pct).toFixed(2) + "%)"
     );
   }
   return lines.join("\n");
@@ -1033,15 +1031,15 @@ function fetchCrypto() {
     var kInfo = upbitMap[c.upbit];
     var lines = [c.name];
     if (uInfo) {
-      var uSign = uInfo.changePct >= 0 ? "+" : "";
-      lines.push("$ " + commasFloat(uInfo.price) + " (" + uSign + uInfo.changePct.toFixed(2) + "%)");
+      var uArrow = uInfo.changePct >= 0 ? "▲" : "▼";
+      lines.push("$ " + commasFloat(uInfo.price) + " (" + uArrow + Math.abs(uInfo.changePct).toFixed(2) + "%)");
     } else {
       lines.push("$ 조회 실패");
     }
     if (kInfo) {
-      var kPct  = kInfo.change_rate * 100;
-      var kSign = kPct >= 0 ? "+" : "";
-      lines.push("₩ " + commasInt(kInfo.trade_price) + " (" + kSign + kPct.toFixed(2) + "%)");
+      var kPct   = kInfo.change_rate * 100;
+      var kArrow = kPct >= 0 ? "▲" : "▼";
+      lines.push("₩ " + commasInt(kInfo.trade_price) + " (" + kArrow + Math.abs(kPct).toFixed(2) + "%)");
       if (uInfo && usdkrw) {
         var kimchi = ((kInfo.trade_price / (uInfo.price * usdkrw)) - 1) * 100;
         var kpSign = kimchi >= 0 ? "+" : "";
@@ -1071,9 +1069,8 @@ function fetchYaMarket() {
     var info = map[it.s];
     if (!info) { lines.push(it.n + "  -"); continue; }
     var arrow = info.change >= 0 ? "▲" : "▼";
-    var sign  = info.change >= 0 ? "+" : "";
     lines.push(it.n + "  " + commasFloat(info.price) +
-      " (" + arrow + sign + info.changePct.toFixed(2) + "%)");
+      " (" + arrow + Math.abs(info.changePct).toFixed(2) + "%)");
   }
   return lines.join("\n");
 }
@@ -1095,9 +1092,8 @@ function fetchNaMarket() {
     var info = map[it.s];
     if (!info) { lines.push(it.n + "  -"); continue; }
     var arrow = info.change >= 0 ? "▲" : "▼";
-    var sign  = info.change >= 0 ? "+" : "";
     lines.push(it.n + "  " + commasFloat(info.price) +
-      " (" + arrow + sign + info.changePct.toFixed(2) + "%)");
+      " (" + arrow + Math.abs(info.changePct).toFixed(2) + "%)");
   }
   return lines.join("\n");
 }
@@ -1113,10 +1109,9 @@ function fetchAllIndices() {
     var info = map[idx.symbol];
     if (!info) { lines.push(idx.label + " 조회 실패"); continue; }
     var arrow = info.change >= 0 ? "▲" : "▼";
-    var sign  = info.change >= 0 ? "+" : "";
     lines.push(
       idx.label + " " + commasFloat(info.price) +
-      " (" + arrow + sign + info.changePct.toFixed(2) + "%)"
+      " (" + arrow + Math.abs(info.changePct).toFixed(2) + "%)"
     );
   }
   return lines.join("\n");
@@ -1129,9 +1124,8 @@ function fetchOilPrice() {
     var info = map[symbol];
     if (!info) return label + ": 조회 실패";
     var arrow = info.change >= 0 ? "▲" : "▼";
-    var sign  = info.change >= 0 ? "+" : "";
     return label + " " + commasFloat(info.price) +
-      "(" + arrow + sign + info.changePct.toFixed(2) + "%)";
+      "(" + arrow + Math.abs(info.changePct).toFixed(2) + "%)";
   }
   return oilLine("WTI", "CL=F") + "\n" + oilLine("브렌트유", "BZ=F");
 }
@@ -1200,13 +1194,13 @@ function handleSlash(query, replier) {
 
   if (entry === "__HELP__") {
     replier.reply(
-      "📋 명령어 안내\n\n" +
-      "/환율 /지수 /야선 /나선 /유가 /금속 /원자재 /코인 /금리 /국채\n\n" +
+      "📋 명령어 안내\n" +
+      "/환율 /지수 /야선 /나선 /유가 /금속 /원자재 /코인 /금리 /국채\n\n\n" +
       "📈 한국 섹터\n" +
       "/반도체  /조선  /방산\n" +
       "/화학  /건설  /에너지\n" +
       "/로봇  /바이오  /자동차\n" +
-      "/금융  /철강\n\n" +
+      "/금융  /철강\n\n\n" +
       "🇺🇸 미국 섹터\n" +
       "/기술주\n" +
       "/미국금융\n" +
@@ -1214,7 +1208,7 @@ function handleSlash(query, replier) {
       "/미국방산  /미국바이오\n" +
       "/미국소비재  /미국통신\n" +
       "/미국전기차  /미국리츠\n" +
-      "/미국클라우드\n\n" +
+      "/미국클라우드\n\n\n" +
       "🔍 개별 종목\n" +
       "/삼성전자  /nvda  /005930 등"
     );
