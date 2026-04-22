@@ -10,7 +10,7 @@ logging.basicConfig(
 
 API_ID   = 39179196
 API_HASH = '9e8723baa78737f27edf76f83ad4cca3'
-PHONE    = '+821XXXXXXXXX'  # ← 또봇 폰 번호로 교체 (예: +821012345678)
+PHONE    = '+82'  # ← 또봇 폰 번호 입력 (예: +821012345678)
 
 # 키워드 매칭된 메시지를 전달할 텔레그램 채팅
 # 'me' = 나와의 채팅(Saved Messages). Android AutoResponder가 이 메시지를 읽어 카카오톡으로 전달
