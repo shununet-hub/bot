@@ -915,13 +915,13 @@ function fetchMetals() {
   var syms = [];
   for (var i = 0; i < items.length; i++) syms.push(items[i].s);
   var map = fetchQuoteBatch(syms);
-  var lines = ["🥇 금속 시세\n"];
+  var lines = ["🥇 금속 시세 (달러 기준)\n"];
   for (var i = 0; i < items.length; i++) {
     var it = items[i];
     var info = map[it.s];
     if (!info) { lines.push(it.n + "  -"); continue; }
     var arrow = info.change >= 0 ? "▲" : "▽";
-    lines.push(it.n + "  $" + commasFloat(info.price) +
+    lines.push(it.n + "  " + commasFloat(info.price) +
       " (" + arrow + Math.abs(info.changePct).toFixed(2) + "%)");
   }
   return lines.join("\n");
@@ -940,13 +940,13 @@ function fetchCommodities() {
   var syms = [];
   for (var i = 0; i < items.length; i++) syms.push(items[i].s);
   var map = fetchQuoteBatch(syms);
-  var lines = ["📦 원자재 시세\n"];
+  var lines = ["📦 원자재 시세 (달러 기준)\n"];
   for (var i = 0; i < items.length; i++) {
     var it = items[i];
     var info = map[it.s];
     if (!info) { lines.push(it.n + "  -"); continue; }
     var arrow = info.change >= 0 ? "▲" : "▽";
-    lines.push(it.n + "  $" + commasFloat(info.price) +
+    lines.push(it.n + "  " + commasFloat(info.price) +
       " (" + arrow + Math.abs(info.changePct).toFixed(2) + "%)");
   }
   return lines.join("\n");
