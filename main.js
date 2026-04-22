@@ -392,16 +392,16 @@ function summarizeYoutube(ytUrl) {
       }]
     });
     var raw = httpPost(apiUrl, reqBody);
-    if (!raw) return "❌ API 응답 없음";
+    if (!raw) return "⚠️ API 응답 없음";
     var resp = JSON.parse(raw);
-    if (resp.error) return "❌ " + (resp.error.message || "API 오류");
+    if (resp.error) return "⚠️ " + (resp.error.message || "API 오류");
     var text = resp.candidates && resp.candidates[0] &&
                resp.candidates[0].content &&
                resp.candidates[0].content.parts &&
                resp.candidates[0].content.parts[0] &&
                resp.candidates[0].content.parts[0].text;
-    return text || "❌ 요약 실패";
-  } catch(e) { return "❌ 오류: " + String(e); }
+    return text || "⚠️ 요약 실패";
+  } catch(e) { return "⚠️ 오류: " + String(e); }
 }
 
 // ── Yahoo Finance crumb 인증 ──────────────────────────────────────────
