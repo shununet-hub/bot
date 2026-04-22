@@ -539,7 +539,7 @@ function startTgPolling() {
       try {
         var raw = httpGetPoll(
           "https://api.telegram.org/bot" + _tgBotToken +
-          "/getUpdates?offset=" + _tgOffset + "&timeout=30&allowed_updates=message"
+          "/getUpdates?offset=" + _tgOffset + "&timeout=30&allowed_updates=message,channel_post"
         );
         if (raw) {
           var data = JSON.parse(raw);
@@ -547,7 +547,7 @@ function startTgPolling() {
             for (var i = 0; i < data.result.length; i++) {
               var update = data.result[i];
               _tgOffset = update.update_id + 1;
-              var message = update.message;
+              var message = update.message || update.channel_post;
               if (!message) continue;
               var text = message.text || message.caption || "";
               if (!text || text.length < 2) continue;
