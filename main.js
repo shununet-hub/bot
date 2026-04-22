@@ -3,6 +3,9 @@ var _yfAuth = null;
 var _yfAuthTs = 0;
 var _dbgLog = [];
 var _roomMap = {}; // 패턴 → 실제 방 전체 이름
+var _tgBotToken = "8417495207:AAEVnHRc9hYbznzcbbX_yT5cAesYHHcgh3o";
+var _tgOffset = 0;
+var _tgThread = null;
 
 // ── 종목 룩업: { s: 심볼, n: 표시명 } 또는 특수 문자열 ───────────────
 var LOOKUP = {
@@ -233,6 +236,25 @@ function httpGetWithHeaders(url, extraHeaders) {
   }
 }
 
+// ── Telegram long-poll용 HTTP GET (타임아웃 35초) ────────────────────
+function httpGetPoll(url) {
+  try {
+    var jURL = new java.net.URL(url);
+    var conn = jURL.openConnection();
+    conn.setRequestProperty("User-Agent", "Mozilla/5.0");
+    conn.setConnectTimeout(5000);
+    conn.setReadTimeout(35000);
+    var reader = new java.io.BufferedReader(
+      new java.io.InputStreamReader(conn.getInputStream(), "UTF-8")
+    );
+    var sb = new java.lang.StringBuilder();
+    var line;
+    while ((line = reader.readLine()) !== null) sb.append(line);
+    reader.close();
+    return sb.toString();
+  } catch (e) { return null; }
+}
+
 // ── HTTP POST (Gemini API 용) ─────────────────────────────────────────
 function httpPost(url, jsonBody) {
   try {
@@ -272,6 +294,51 @@ function sendToRoom(roomName, message) {
     i += MAX;
     if (i < message.length) java.lang.Thread.sleep(800);
   }
+}
+
+// ── Telegram Bot API 폴링 (전체 메시지 수신 → 카톡 전달) ─────────────
+function startTgPolling() {
+  if (_tgThread && _tgThread.isAlive()) return;
+  _tgThread = new java.lang.Thread(function() {
+    java.lang.Thread.sleep(3000); // 스크립트 초기화 대기
+    while (true) {
+      try {
+        var raw = httpGetPoll(
+          "https://api.telegram.org/bot" + _tgBotToken +
+          "/getUpdates?offset=" + _tgOffset + "&timeout=30&allowed_updates=message"
+        );
+        if (raw) {
+          var data = JSON.parse(raw);
+          if (data.ok && data.result && data.result.length) {
+            for (var i = 0; i < data.result.length; i++) {
+              var update = data.result[i];
+              _tgOffset = update.update_id + 1;
+              var message = update.message;
+              if (!message) continue;
+              var text = message.text || message.caption || "";
+              if (!text || text.length < 2) continue;
+              var msgLower = text.toLowerCase();
+              var matched = KEYWORDS.some(function(kw) {
+                return msgLower.indexOf(kw.toLowerCase()) !== -1;
+              });
+              if (!matched) continue;
+              var key = text.substring(0, 100).replace(/\s/g, "");
+              if (sent[key]) continue;
+              sent[key] = true;
+              cleanSent();
+              var targetRoom = _roomMap["삼하마샌"] || _roomMap["사또밥"] ||
+                "삼하마샌 주주방 (샌디스크,마이크론,삼성전자,하이닉스)";
+              sendToRoom(targetRoom, text);
+            }
+          }
+        }
+      } catch(e) {
+        java.lang.Thread.sleep(5000);
+      }
+    }
+  });
+  _tgThread.setDaemon(true);
+  _tgThread.start();
 }
 
 // ── sent 초기화 (세션 replier는 보존) ────────────────────────────────
@@ -832,3 +899,8 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
   java.lang.Thread.sleep(2000);
   sendToRoom(_roomMap["삼하마샌"] || _roomMap["사또밥"] || "삼하마샌 주주방 (샌디스크,마이크론,삼성전자,하이닉스)", msg);
 }
+
+// ── Telegram 봇 API 폴링 시작 ─────────────────────────────────────────
+Bot.on("startCompile", function() {
+  startTgPolling();
+});
