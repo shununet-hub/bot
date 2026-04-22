@@ -785,32 +785,16 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
     }
 
     // ── 소스 방 → 삼하마샌 전달 ──
-    var isFromTrump  = room.indexOf("트럼프") !== -1;
-    var isFromMental = room.indexOf("멘탈케어") !== -1;
-
-    if (isFromTrump || isFromMental) {
-      var targetSess = sent["__session__삼하마샌"];
-
-      if (isFromTrump && msg.length > 5) {
-        var key2 = msg.substring(0, 100).replace(/\s/g, "");
-        if (!sent[key2]) {
-          sent[key2] = true;
-          if (targetSess) targetSess.reply(msg);
-          else Api.replyRoom("삼하마샌", msg);
-        }
-        return;
-      }
-
-      if (isFromMental && msg.length >= 100) {
+    if (room.indexOf("멘탈케어") !== -1) {
+      if (msg.length >= 100) {
         var keyM = msg.substring(0, 100).replace(/\s/g, "");
         if (!sent[keyM]) {
           sent[keyM] = true;
+          var targetSess = sent["__session__삼하마샌"];
           if (targetSess) targetSess.reply(msg);
           else Api.replyRoom("삼하마샌", msg);
         }
-        return;
       }
-
       return;
     }
 
