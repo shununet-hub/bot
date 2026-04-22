@@ -825,13 +825,9 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
 
   if (packageName !== "org.telegram.messenger") return;
 
-  var msgLower = msg.toLowerCase();
-
-  var matched = KEYWORDS.some(function(kw) {
-    return msgLower.indexOf(kw.toLowerCase()) !== -1;
-  });
-
-  if (!matched) return;
+  // Telethon이 채널 키워드 필터 후 "나와의 채팅"으로 중계한 메시지만 처리
+  // (채널 직접 수신은 Telethon이 담당하므로 중복 방지)
+  if (room !== "나와의 채팅" && room !== "Saved Messages") return;
 
   var key = msg.substring(0, 100).replace(/\s/g, "");
   if (sent[key]) return;
