@@ -901,6 +901,4 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
 }
 
 // ── Telegram 봇 API 폴링 시작 ─────────────────────────────────────────
-Bot.on("startCompile", function() {
-  startTgPolling();
-});
+startTgPolling();
