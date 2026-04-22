@@ -382,7 +382,7 @@ function extractYoutubeUrl(msg) {
 // ── Gemini로 YouTube 영상 요약 ────────────────────────────────────────
 function summarizeYoutube(ytUrl) {
   try {
-    var apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-latest:generateContent?key=" + GEMINI_API_KEY;
+    var apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=" + GEMINI_API_KEY;
     var reqBody = JSON.stringify({
       contents: [{
         parts: [
