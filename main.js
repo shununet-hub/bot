@@ -923,9 +923,8 @@ function fetchMetals() {
     var info = map[it.s];
     if (!info) { lines.push(it.n + "  -"); continue; }
     var arrow = info.change >= 0 ? "▲" : "▽";
-    var sign  = info.change >= 0 ? "+" : "";
     lines.push(it.n + "  $" + commasFloat(info.price) +
-      " (" + arrow + sign + info.changePct.toFixed(2) + "%)");
+      " (" + arrow + Math.abs(info.changePct).toFixed(2) + "%)");
   }
   return lines.join("\n");
 }
