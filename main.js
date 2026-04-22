@@ -752,15 +752,18 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       if (room.indexOf(WATCH_PATTERNS[wp]) !== -1) _roomMap[WATCH_PATTERNS[wp]] = room;
     }
 
-    if (msg.charAt(0) === "/" && msg.trim().length > 1) {
-      var cmd = msg.trim().slice(1).toLowerCase();
-      handleSlash(cmd, replier);
-      return;
-    }
-
     // ── 소스방 → 삼하마샌 전달 (소스 방에서 봇 무응답) ──
     var isFromEnergy = room.indexOf("GE버노바") !== -1;
     var isFromMiju   = room.indexOf("멘탈케어") !== -1;
+
+    // 소스 방이 아닐 때만 슬래시 명령 응답
+    if (!isFromEnergy && !isFromMiju) {
+      if (msg.charAt(0) === "/" && msg.trim().length > 1) {
+        var cmd = msg.trim().slice(1).toLowerCase();
+        handleSlash(cmd, replier);
+        return;
+      }
+    }
 
     if (isFromEnergy || isFromMiju) {
       // 타겟 방 추가할 때 여기에 패턴 추가
