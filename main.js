@@ -9,6 +9,7 @@ var _tgThread = null;
 
 // ── 종목 룩업: { s: 심볼, n: 표시명 } 또는 특수 문자열 ───────────────
 var LOOKUP = {
+  "환율":       "__EXCHANGE__",
   "지수":       "__ALL_INDICES__",
   "유가":       "__OILPRICE__",
   "반도체":     "__SEMI_COMBINED__",
@@ -864,6 +865,38 @@ function formatQuote(info, displayName) {
     "전일종가: " + prevStr;
 }
 
+// ── /환율 ─────────────────────────────────────────────────────────────
+function fetchExchangeRates() {
+  var pairs = [
+    { s: "USDKRW=X", unit: "1달러  " },
+    { s: "EURKRW=X", unit: "1유로  " },
+    { s: "JPYKRW=X", unit: "100엔  ", per: 100 },
+    { s: "CNYKRW=X", unit: "1위안  " },
+    { s: "GBPKRW=X", unit: "1파운드" },
+  ];
+  var syms = [];
+  for (var i = 0; i < pairs.length; i++) syms.push(pairs[i].s);
+  var map = fetchQuoteBatch(syms);
+  var lines = ["💱 환율 (원화 기준)\n"];
+  for (var i = 0; i < pairs.length; i++) {
+    var p = pairs[i];
+    var info = map[p.s];
+    if (!info) { lines.push(p.unit + " = 조회 실패"); continue; }
+    var mul    = p.per || 1;
+    var rate   = info.price * mul;
+    var prev   = info.prevClose * mul;
+    var change = rate - prev;
+    var pct    = prev ? (change / prev) * 100 : 0;
+    var arrow  = change >= 0 ? "▲" : "▼";
+    var sign   = change >= 0 ? "+" : "";
+    lines.push(
+      p.unit + " = ₩" + commasInt(rate) +
+      " (" + arrow + sign + Math.abs(pct).toFixed(2) + "%)"
+    );
+  }
+  return lines.join("\n");
+}
+
 // ── /지수 ─────────────────────────────────────────────────────────────
 function fetchAllIndices() {
   var syms = [];
@@ -960,6 +993,7 @@ function fetchCombinedSemi() {
 function handleSlash(query, replier) {
   var entry = LOOKUP[query];
 
+  if (entry === "__EXCHANGE__")      { replier.reply(fetchExchangeRates()); return; }
   if (entry === "__ALL_INDICES__")   { replier.reply(fetchAllIndices());   return; }
   if (entry === "__OILPRICE__")      { replier.reply(fetchOilPrice());     return; }
   if (entry === "__SEMI_COMBINED__") { replier.reply(fetchCombinedSemi()); return; }
