@@ -25,6 +25,16 @@ var LOOKUP = {
   "자동차":     "__AUTO__",
   "금융":       "__FINANCE__",
   "철강":       "__STEEL__",
+  "미국금융":   "__US_FINANCE__",
+  "미국헬스케어": "__US_HEALTH__",
+  "미국에너지": "__US_ENERGY__",
+  "미국방산":   "__US_DEFENSE__",
+  "미국바이오": "__US_BIO__",
+  "미국소비재": "__US_CONSUMER__",
+  "미국통신":   "__US_TELECOM__",
+  "미국전기차": "__US_EV__",
+  "미국리츠":   "__US_REIT__",
+  "미국클라우드": "__US_CLOUD__",
 
   // 지수
   "코스피":   { s: "^KS11",  n: "코스피" },
@@ -310,6 +320,106 @@ var STEEL_STOCKS = [
   { s: "016380.KS", n: "동부제철" },
 ];
 
+var US_FINANCE_STOCKS = [
+  { s: "BRK-B", n: "버크셔해서웨이" },
+  { s: "JPM",   n: "JP모건" },
+  { s: "V",     n: "비자" },
+  { s: "MA",    n: "마스터카드" },
+  { s: "BAC",   n: "뱅크오브아메리카" },
+  { s: "GS",    n: "골드만삭스" },
+  { s: "MS",    n: "모건스탠리" },
+];
+
+var US_HEALTH_STOCKS = [
+  { s: "LLY",  n: "일라이릴리" },
+  { s: "UNH",  n: "유나이티드헬스" },
+  { s: "JNJ",  n: "존슨앤존슨" },
+  { s: "ABBV", n: "애브비" },
+  { s: "MRK",  n: "머크" },
+  { s: "TMO",  n: "써모피셔" },
+  { s: "ABT",  n: "애보트" },
+];
+
+var US_ENERGY_STOCKS = [
+  { s: "XOM", n: "엑슨모빌" },
+  { s: "CVX", n: "쉐브론" },
+  { s: "COP", n: "코노코필립스" },
+  { s: "SLB", n: "슐럼버거" },
+  { s: "EOG", n: "EOG리소시스" },
+  { s: "MPC", n: "마라톤페트롤리엄" },
+  { s: "PSX", n: "필립스66" },
+];
+
+var US_DEFENSE_STOCKS = [
+  { s: "RTX", n: "RTX(레이시온)" },
+  { s: "LMT", n: "록히드마틴" },
+  { s: "NOC", n: "노스롭그루먼" },
+  { s: "GD",  n: "제너럴다이나믹스" },
+  { s: "LHX", n: "L3해리스" },
+  { s: "BA",  n: "보잉" },
+  { s: "HII", n: "헌팅턴잉걸스" },
+];
+
+var US_BIO_STOCKS = [
+  { s: "AMGN", n: "암젠" },
+  { s: "GILD", n: "길리어드" },
+  { s: "MRNA", n: "모더나" },
+  { s: "REGN", n: "리제네론" },
+  { s: "VRTX", n: "버텍스" },
+  { s: "BIIB", n: "바이오젠" },
+  { s: "BNTX", n: "바이오엔텍" },
+];
+
+var US_CONSUMER_STOCKS = [
+  { s: "AMZN", n: "아마존" },
+  { s: "HD",   n: "홈디포" },
+  { s: "MCD",  n: "맥도날드" },
+  { s: "COST", n: "코스트코" },
+  { s: "NKE",  n: "나이키" },
+  { s: "SBUX", n: "스타벅스" },
+  { s: "LOW",  n: "로우스" },
+];
+
+var US_TELECOM_STOCKS = [
+  { s: "T",     n: "AT&T" },
+  { s: "VZ",    n: "버라이즌" },
+  { s: "TMUS",  n: "T-모바일" },
+  { s: "CMCSA", n: "컴캐스트" },
+  { s: "DIS",   n: "디즈니" },
+  { s: "CHTR",  n: "차터커뮤니케이션" },
+  { s: "WBD",   n: "워너브러더스" },
+];
+
+var US_EV_STOCKS = [
+  { s: "TSLA", n: "테슬라" },
+  { s: "GM",   n: "GM" },
+  { s: "F",    n: "포드" },
+  { s: "RIVN", n: "리비안" },
+  { s: "LCID", n: "루시드" },
+  { s: "NIO",  n: "니오" },
+  { s: "LI",   n: "리오토" },
+];
+
+var US_REIT_STOCKS = [
+  { s: "PLD",  n: "프로로지스" },
+  { s: "AMT",  n: "아메리칸타워" },
+  { s: "EQIX", n: "에퀴닉스" },
+  { s: "CCI",  n: "크라운캐슬" },
+  { s: "SPG",  n: "사이먼프라퍼티" },
+  { s: "O",    n: "리얼티인컴" },
+  { s: "PSA",  n: "퍼블릭스토리지" },
+];
+
+var US_CLOUD_STOCKS = [
+  { s: "MSFT", n: "마이크로소프트" },
+  { s: "AMZN", n: "아마존" },
+  { s: "GOOGL",n: "구글" },
+  { s: "CRM",  n: "세일즈포스" },
+  { s: "NOW",  n: "서비스나우" },
+  { s: "SNOW", n: "스노우플레이크" },
+  { s: "NET",  n: "클라우드플레어" },
+];
+
 // ── URL 인코딩 ────────────────────────────────────────────────────────
 function urlEncode(str) {
   try {
@@ -400,7 +510,7 @@ function sendToRoom(roomName, message) {
     return;
   }
   // 세션 없을 때만 청크 분할 (Api.replyRoom은 바이트 한도 있음)
-  var MAX = 300;
+  var MAX = 500;
   var i = 0;
   while (i < message.length) {
     var chunk = message.substring(i, Math.min(i + MAX, message.length));
@@ -866,6 +976,16 @@ function handleSlash(query, replier) {
   if (entry === "__AUTO__")          { replier.reply(buildSectorMsg("🇰🇷 자동차주 시세", AUTO_STOCKS, null, false, null)); return; }
   if (entry === "__FINANCE__")       { replier.reply(buildSectorMsg("🇰🇷 금융주 시세", FINANCE_STOCKS, null, false, null)); return; }
   if (entry === "__STEEL__")         { replier.reply(buildSectorMsg("🇰🇷 철강주 시세", STEEL_STOCKS, null, false, null)); return; }
+  if (entry === "__US_FINANCE__")    { replier.reply(buildSectorMsg("🇺🇸 미국 금융주 시세", US_FINANCE_STOCKS, null, true, "(본장시간 외 종가로 표기)")); return; }
+  if (entry === "__US_HEALTH__")     { replier.reply(buildSectorMsg("🇺🇸 미국 헬스케어 시세", US_HEALTH_STOCKS, null, true, "(본장시간 외 종가로 표기)")); return; }
+  if (entry === "__US_ENERGY__")     { replier.reply(buildSectorMsg("🇺🇸 미국 에너지주 시세", US_ENERGY_STOCKS, null, true, "(본장시간 외 종가로 표기)")); return; }
+  if (entry === "__US_DEFENSE__")    { replier.reply(buildSectorMsg("🇺🇸 미국 방산주 시세", US_DEFENSE_STOCKS, null, true, "(본장시간 외 종가로 표기)")); return; }
+  if (entry === "__US_BIO__")        { replier.reply(buildSectorMsg("🇺🇸 미국 바이오주 시세", US_BIO_STOCKS, null, true, "(본장시간 외 종가로 표기)")); return; }
+  if (entry === "__US_CONSUMER__")   { replier.reply(buildSectorMsg("🇺🇸 미국 소비재 시세", US_CONSUMER_STOCKS, null, true, "(본장시간 외 종가로 표기)")); return; }
+  if (entry === "__US_TELECOM__")    { replier.reply(buildSectorMsg("🇺🇸 미국 통신/미디어 시세", US_TELECOM_STOCKS, null, true, "(본장시간 외 종가로 표기)")); return; }
+  if (entry === "__US_EV__")         { replier.reply(buildSectorMsg("🇺🇸 미국 전기차 시세", US_EV_STOCKS, null, true, "(본장시간 외 종가로 표기)")); return; }
+  if (entry === "__US_REIT__")       { replier.reply(buildSectorMsg("🇺🇸 미국 리츠 시세", US_REIT_STOCKS, null, true, "(본장시간 외 종가로 표기)")); return; }
+  if (entry === "__US_CLOUD__")      { replier.reply(buildSectorMsg("🇺🇸 미국 클라우드/SaaS 시세", US_CLOUD_STOCKS, null, true, "(본장시간 외 종가로 표기)")); return; }
 
   if (query === "세션") {
     var rooms = [];
