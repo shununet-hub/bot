@@ -35,7 +35,7 @@ var LOOKUP = {
   "금융":       "__FINANCE__",
   "철강":       "__STEEL__",
   "미국금융":   "__US_FINANCE__",
-  "미국헬스케어": "__US_HEALTH__",
+  "미국헬스":    "__US_HEALTH__",
   "미국에너지": "__US_ENERGY__",
   "미국방산":   "__US_DEFENSE__",
   "미국바이오": "__US_BIO__",
@@ -973,8 +973,9 @@ function fetchWorldRates() {
     var info = map[it.s];
     if (!info) { lines.push(it.n + "  조회 실패"); continue; }
     var arrow = info.change >= 0 ? "▲" : "▼";
+    var bp = Math.round(Math.abs(info.change) * 100);
     lines.push(it.n + "  " + info.price.toFixed(2) + "%" +
-      " (" + arrow + Math.abs(info.change).toFixed(2) + ")");
+      " (" + arrow + bp + "bp)");
   }
   return lines.join("\n");
 }
@@ -996,8 +997,9 @@ function fetchUSTreasury() {
     var info = map[it.s];
     if (!info) { lines.push(it.n + "  조회 실패"); continue; }
     var arrow = info.change >= 0 ? "▲" : "▼";
+    var bp = Math.round(Math.abs(info.change) * 100);
     lines.push(it.n + "  " + info.price.toFixed(2) + "%" +
-      " (" + arrow + Math.abs(info.change).toFixed(2) + ")");
+      " (" + arrow + bp + "bp)");
   }
   return lines.join("\n");
 }
@@ -1051,7 +1053,7 @@ function fetchCrypto() {
     }
     blocks.push(lines.join("\n"));
   }
-  return blocks.join("\n\n");
+  return blocks[0] + "\n" + blocks.slice(1).join("\n\n");
 }
 
 // ── /야선 (한국 시장) ─────────────────────────────────────────────────
@@ -1199,20 +1201,17 @@ function handleSlash(query, replier) {
 
   if (entry === "__HELP__") {
     replier.reply(
-      "📋 명령어 목록\n\n" +
-      "💱 시세/환율\n" +
-      "/환율  /지수  /유가\n" +
-      "/금속  /원자재  /코인\n" +
-      "/금리  /국채\n" +
-      "/야선  /나선\n\n" +
+      "📋 명령어 안내\n\n" +
+      "/환율 /지수 /야선 /나선 /유가 /금속 /원자재 /코인 /금리 /국채\n\n" +
       "📈 한국 섹터\n" +
       "/반도체  /조선  /방산\n" +
       "/화학  /건설  /에너지\n" +
       "/로봇  /바이오  /자동차\n" +
       "/금융  /철강\n\n" +
       "🇺🇸 미국 섹터\n" +
-      "/기술주  /미국금융\n" +
-      "/미국헬스케어  /미국에너지\n" +
+      "/기술주\n" +
+      "/미국금융\n" +
+      "/미국헬스  /미국에너지\n" +
       "/미국방산  /미국바이오\n" +
       "/미국소비재  /미국통신\n" +
       "/미국전기차  /미국리츠\n" +
