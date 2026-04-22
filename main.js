@@ -747,7 +747,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
     sent["__session__" + room] = replier;
 
     // 방 이름 패턴 매핑 (부분 이름 → 실제 전체 이름)
-    var WATCH_PATTERNS = ["삼하마샌", "GE버노바", "멘탈케어"];
+    var WATCH_PATTERNS = ["삼하마샌", "사또밥", "GE버노바", "멘탈케어"];
     for (var wp = 0; wp < WATCH_PATTERNS.length; wp++) {
       if (room.indexOf(WATCH_PATTERNS[wp]) !== -1) _roomMap[WATCH_PATTERNS[wp]] = room;
     }
@@ -767,7 +767,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
 
     if (isFromEnergy || isFromMiju) {
       // 타겟 방 추가할 때 여기에 패턴 추가
-      var TARGET_ROOMS = ["삼하마샌"];
+      var TARGET_ROOMS = ["삼하마샌", "사또밥"];
 
       function forwardMsg(m) {
         for (var t = 0; t < TARGET_ROOMS.length; t++) {
@@ -830,5 +830,5 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
   cleanSent();
 
   java.lang.Thread.sleep(2000);
-  sendToRoom(_roomMap["삼하마샌"] || "삼하마샌 주주방 (샌디스크,마이크론,삼성전자,하이닉스)", msg);
+  sendToRoom(_roomMap["삼하마샌"] || _roomMap["사또밥"] || "삼하마샌 주주방 (샌디스크,마이크론,삼성전자,하이닉스)", msg);
 }
