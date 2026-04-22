@@ -518,8 +518,8 @@ function sendToRoom(roomName, message) {
     r.reply(message);
     return;
   }
-  // 세션 없을 때만 청크 분할 (Api.replyRoom은 바이트 한도 있음)
-  var MAX = 500;
+  // 세션 없을 때만 청크 분할 (한국어 3바이트/글자 기준 ~450바이트 이내로 제한)
+  var MAX = 150;
   var i = 0;
   while (i < message.length) {
     var chunk = message.substring(i, Math.min(i + MAX, message.length));
@@ -896,7 +896,7 @@ function fetchExchangeRates() {
     var pct    = prev ? (change / prev) * 100 : 0;
     var arrow  = change >= 0 ? "▲" : "▼";
     lines.push(
-      p.unit + " ₩ " + commasInt(rate) +
+      p.unit + "  " + commasInt(rate) + "원" +
       " (" + arrow + Math.abs(pct).toFixed(2) + "%)"
     );
   }
@@ -1195,12 +1195,12 @@ function handleSlash(query, replier) {
   if (entry === "__HELP__") {
     replier.reply(
       "📋 명령어 안내\n" +
-      "/환율 /지수 /야선 /나선 /유가 /금속 /원자재 /코인 /금리 /국채\n\n\n" +
+      "/환율 /지수 /야선 /나선 /유가 /금속 /원자재 /코인 /금리 /국채\n\n" +
       "📈 한국 섹터\n" +
       "/반도체  /조선  /방산\n" +
       "/화학  /건설  /에너지\n" +
       "/로봇  /바이오  /자동차\n" +
-      "/금융  /철강\n\n\n" +
+      "/금융  /철강\n\n" +
       "🇺🇸 미국 섹터\n" +
       "/기술주\n" +
       "/미국금융\n" +
@@ -1208,7 +1208,7 @@ function handleSlash(query, replier) {
       "/미국방산  /미국바이오\n" +
       "/미국소비재  /미국통신\n" +
       "/미국전기차  /미국리츠\n" +
-      "/미국클라우드\n\n\n" +
+      "/미국클라우드\n\n" +
       "🔍 개별 종목\n" +
       "/삼성전자  /nvda  /005930 등"
     );
