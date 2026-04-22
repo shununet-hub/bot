@@ -387,7 +387,7 @@ function summarizeYoutube(ytUrl) {
       contents: [{
         parts: [
           { fileData: { mimeType: "video/mp4", fileUri: ytUrl } },
-          { text: "이 영상을 한국어로 요약해줘. 아래 형식 엄수:\n- **같은 마크다운 절대 사용 금지**\n- 이모지로 섹션 구분\n- 각 섹션 사이 빈 줄 한 줄\n- 전체 10줄 이내, 간결하게\n\n형식:\n🎯 주제\n(한 줄)\n\n📌 핵심 포인트\n• ...\n• ...\n• ...\n\n💡 결론\n(한 줄)" }
+          { text: "이 영상을 한국어로 요약해줘. 아래 형식 엄수:\n- '이 영상은~', '요약해드립니다' 같은 서두 문장 없이 바로 내용부터 시작\n- **같은 마크다운 절대 사용 금지\n- 이모지로 섹션 구분\n- 각 섹션 사이 빈 줄 한 줄\n- 전체 10줄 이내, 간결하게\n\n형식:\n🎯 주제\n(한 줄)\n\n📌 핵심 포인트\n• ...\n• ...\n• ...\n\n💡 결론\n(한 줄)" }
         ]
       }]
     });
@@ -780,7 +780,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       if (!sent[ytKey]) {
         sent[ytKey] = true;
         replier.reply("🎬 영상 분석 중...");
-        replier.reply("📝 요약\n\n" + summarizeYoutube(ytUrl));
+        replier.reply("📝 요약\n" + summarizeYoutube(ytUrl));
       }
     }
 
