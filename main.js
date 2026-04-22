@@ -9,7 +9,10 @@ var _tgThread = null;
 
 // ── 종목 룩업: { s: 심볼, n: 표시명 } 또는 특수 문자열 ───────────────
 var LOOKUP = {
+  "명령어":     "__HELP__",
   "환율":       "__EXCHANGE__",
+  "야선":       "__YAMARKET__",
+  "나선":       "__NAMARKET__",
   "금속":       "__METAL__",
   "원자재":     "__COMMODITY__",
   "금리":       "__WORLDRATE__",
@@ -895,7 +898,7 @@ function fetchExchangeRates() {
     var arrow  = change >= 0 ? "▲" : "▼";
     var sign   = change >= 0 ? "+" : "";
     lines.push(
-      p.unit + " = ₩ " + commasInt(rate) +
+      p.unit + " ₩ " + commasInt(rate) +
       " (" + arrow + sign + Math.abs(pct).toFixed(2) + "%)"
     );
   }
@@ -905,11 +908,11 @@ function fetchExchangeRates() {
 // ── /금속 ─────────────────────────────────────────────────────────────
 function fetchMetals() {
   var items = [
-    { s: "GC=F", n: "금(Gold)      " },
-    { s: "SI=F", n: "은(Silver)    " },
-    { s: "PL=F", n: "백금(Platinum)" },
-    { s: "HG=F", n: "구리(Copper)  " },
-    { s: "PA=F", n: "팔라듐        " },
+    { s: "GC=F", n: "금   GLD" },
+    { s: "SI=F", n: "실버 SLV" },
+    { s: "PL=F", n: "백금 PL " },
+    { s: "HG=F", n: "구리 HG " },
+    { s: "PA=F", n: "팔라듐  " },
   ];
   var syms = [];
   for (var i = 0; i < items.length; i++) syms.push(items[i].s);
@@ -933,7 +936,7 @@ function fetchCommodities() {
     { s: "CL=F", n: "WTI원유  " },
     { s: "BZ=F", n: "브렌트유 " },
     { s: "NG=F", n: "천연가스 " },
-    { s: "ZW=F", n: "밀(Wheat)" },
+    { s: "ZW=F", n: "밀       " },
     { s: "ZC=F", n: "옥수수   " },
     { s: "ZS=F", n: "대두     " },
   ];
@@ -946,9 +949,8 @@ function fetchCommodities() {
     var info = map[it.s];
     if (!info) { lines.push(it.n + "  -"); continue; }
     var arrow = info.change >= 0 ? "▲" : "▽";
-    var sign  = info.change >= 0 ? "+" : "";
     lines.push(it.n + "  $" + commasFloat(info.price) +
-      " (" + arrow + sign + info.changePct.toFixed(2) + "%)");
+      " (" + arrow + Math.abs(info.changePct).toFixed(2) + "%)");
   }
   return lines.join("\n");
 }
@@ -956,24 +958,23 @@ function fetchCommodities() {
 // ── /금리 (세계 국채 금리) ────────────────────────────────────────────
 function fetchWorldRates() {
   var items = [
-    { s: "^TNX",      n: "미국 10Y" },
-    { s: "^TYX",      n: "미국 30Y" },
-    { s: "DE10YT=RR", n: "독일 10Y" },
-    { s: "JP10YT=RR", n: "일본 10Y" },
-    { s: "GB10YT=RR", n: "영국 10Y" },
+    { s: "^TNX",      n: "미국10Y" },
+    { s: "^TYX",      n: "미국30Y" },
+    { s: "DE10YT=RR", n: "독일10Y" },
+    { s: "JP10YT=RR", n: "일본10Y" },
+    { s: "GB10YT=RR", n: "영국10Y" },
   ];
   var syms = [];
   for (var i = 0; i < items.length; i++) syms.push(items[i].s);
   var map = fetchQuoteBatch(syms);
-  var lines = ["📉 세계 국채 금리\n"];
+  var lines = ["📉 세계국채금리\n"];
   for (var i = 0; i < items.length; i++) {
     var it = items[i];
     var info = map[it.s];
     if (!info) { lines.push(it.n + "  조회 실패"); continue; }
     var arrow = info.change >= 0 ? "▲" : "▼";
-    var sign  = info.change >= 0 ? "+" : "";
     lines.push(it.n + "  " + info.price.toFixed(2) + "%" +
-      " (" + arrow + sign + Math.abs(info.change).toFixed(2) + ")");
+      " (" + arrow + Math.abs(info.change).toFixed(2) + ")");
   }
   return lines.join("\n");
 }
@@ -989,15 +990,14 @@ function fetchUSTreasury() {
   var syms = [];
   for (var i = 0; i < items.length; i++) syms.push(items[i].s);
   var map = fetchQuoteBatch(syms);
-  var lines = ["🏛️ 미국 국채 금리\n"];
+  var lines = ["🏛️ 미국국채금리\n"];
   for (var i = 0; i < items.length; i++) {
     var it = items[i];
     var info = map[it.s];
     if (!info) { lines.push(it.n + "  조회 실패"); continue; }
     var arrow = info.change >= 0 ? "▲" : "▼";
-    var sign  = info.change >= 0 ? "+" : "";
     lines.push(it.n + "  " + info.price.toFixed(2) + "%" +
-      " (" + arrow + sign + Math.abs(info.change).toFixed(2) + ")");
+      " (" + arrow + Math.abs(info.change).toFixed(2) + ")");
   }
   return lines.join("\n");
 }
@@ -1052,6 +1052,53 @@ function fetchCrypto() {
     blocks.push(lines.join("\n"));
   }
   return blocks.join("\n\n");
+}
+
+// ── /야선 (한국 시장) ─────────────────────────────────────────────────
+function fetchYaMarket() {
+  var items = [
+    { s: "^KS11",    n: "코스피  " },
+    { s: "^KQ11",    n: "코스닥  " },
+    { s: "USDKRW=X", n: "달러/원 " },
+  ];
+  var syms = [];
+  for (var i = 0; i < items.length; i++) syms.push(items[i].s);
+  var map = fetchQuoteBatch(syms);
+  var lines = ["🇰🇷 한국 시장\n"];
+  for (var i = 0; i < items.length; i++) {
+    var it = items[i];
+    var info = map[it.s];
+    if (!info) { lines.push(it.n + "  -"); continue; }
+    var arrow = info.change >= 0 ? "▲" : "▼";
+    var sign  = info.change >= 0 ? "+" : "";
+    lines.push(it.n + "  " + commasFloat(info.price) +
+      " (" + arrow + sign + info.changePct.toFixed(2) + "%)");
+  }
+  return lines.join("\n");
+}
+
+// ── /나선 (미국 선물) ─────────────────────────────────────────────────
+function fetchNaMarket() {
+  var items = [
+    { s: "NQ=F",  n: "나스닥선물" },
+    { s: "ES=F",  n: "S&P500선물" },
+    { s: "YM=F",  n: "다우선물  " },
+    { s: "RTY=F", n: "러셀선물  " },
+  ];
+  var syms = [];
+  for (var i = 0; i < items.length; i++) syms.push(items[i].s);
+  var map = fetchQuoteBatch(syms);
+  var lines = ["🇺🇸 미국 선물\n"];
+  for (var i = 0; i < items.length; i++) {
+    var it = items[i];
+    var info = map[it.s];
+    if (!info) { lines.push(it.n + "  -"); continue; }
+    var arrow = info.change >= 0 ? "▲" : "▼";
+    var sign  = info.change >= 0 ? "+" : "";
+    lines.push(it.n + "  " + commasFloat(info.price) +
+      " (" + arrow + sign + info.changePct.toFixed(2) + "%)");
+  }
+  return lines.join("\n");
 }
 
 // ── /지수 ─────────────────────────────────────────────────────────────
@@ -1150,7 +1197,34 @@ function fetchCombinedSemi() {
 function handleSlash(query, replier) {
   var entry = LOOKUP[query];
 
+  if (entry === "__HELP__") {
+    replier.reply(
+      "📋 명령어 목록\n\n" +
+      "💱 시세/환율\n" +
+      "/환율  /지수  /유가\n" +
+      "/금속  /원자재  /코인\n" +
+      "/금리  /국채\n" +
+      "/야선  /나선\n\n" +
+      "📈 한국 섹터\n" +
+      "/반도체  /조선  /방산\n" +
+      "/화학  /건설  /에너지\n" +
+      "/로봇  /바이오  /자동차\n" +
+      "/금융  /철강\n\n" +
+      "🇺🇸 미국 섹터\n" +
+      "/기술주  /미국금융\n" +
+      "/미국헬스케어  /미국에너지\n" +
+      "/미국방산  /미국바이오\n" +
+      "/미국소비재  /미국통신\n" +
+      "/미국전기차  /미국리츠\n" +
+      "/미국클라우드\n\n" +
+      "🔍 개별 종목\n" +
+      "/삼성전자  /nvda  /005930 등"
+    );
+    return;
+  }
   if (entry === "__EXCHANGE__")      { replier.reply(fetchExchangeRates()); return; }
+  if (entry === "__YAMARKET__")      { replier.reply(fetchYaMarket());      return; }
+  if (entry === "__NAMARKET__")      { replier.reply(fetchNaMarket());      return; }
   if (entry === "__METAL__")         { replier.reply(fetchMetals());        return; }
   if (entry === "__COMMODITY__")     { replier.reply(fetchCommodities());   return; }
   if (entry === "__WORLDRATE__")     { replier.reply(fetchWorldRates());    return; }
