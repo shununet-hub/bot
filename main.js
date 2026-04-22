@@ -747,7 +747,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
     sent["__session__" + room] = replier;
 
     // 방 이름 패턴 매핑 (부분 이름 → 실제 전체 이름)
-    var WATCH_PATTERNS = ["삼하마샌", "버노바", "미주"];
+    var WATCH_PATTERNS = ["삼하마샌", "GE버노바", "멘탈케어"];
     for (var wp = 0; wp < WATCH_PATTERNS.length; wp++) {
       if (room.indexOf(WATCH_PATTERNS[wp]) !== -1) _roomMap[WATCH_PATTERNS[wp]] = room;
     }
@@ -759,8 +759,8 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
     }
 
     // ── 소스방 → 삼하마샌 전달 (소스 방에서 봇 무응답) ──
-    var isFromEnergy = room.indexOf("버노바") !== -1;
-    var isFromMiju   = room.indexOf("미주") !== -1;
+    var isFromEnergy = room.indexOf("GE버노바") !== -1;
+    var isFromMiju   = room.indexOf("멘탈케어") !== -1;
 
     if (isFromEnergy || isFromMiju) {
       // 타겟 방 추가할 때 여기에 패턴 추가
