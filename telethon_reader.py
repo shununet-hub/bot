@@ -46,10 +46,6 @@ async def on_new_message(event):
     if len(msg) < 10:
         return
 
-    msg_lower = msg.lower()
-    if not any(kw.lower() in msg_lower for kw in KEYWORDS):
-        return
-
     key = msg[:100].replace(' ', '')
     if key in seen:
         return
