@@ -61,11 +61,13 @@ async def send_to_bot(text: str):
 
 @client.on(events.NewMessage)
 async def on_new_message(event):
+    msg = event.message.message or ''
+    logging.info(f"수신 [out={event.out}, private={event.is_private}]: {msg[:40]}")
+
     # 내가 보낸 메시지 / 개인 DM 무시
     if event.out or event.is_private:
         return
 
-    msg = event.message.message or ''
     if len(msg) < 5:
         return
 
