@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import aiohttp
 from telethon import TelegramClient, events
 
 logging.basicConfig(
@@ -12,81 +11,52 @@ logging.basicConfig(
 # ══════════════════════════════════════════════════════
 # ⚙️  설정
 # ══════════════════════════════════════════════════════
-API_ID     = 39179196
-API_HASH   = '9e8723baa78737f27edf76f83ad4cca3'
-PHONE      = '+821044484242'
+API_ID   = 39179196
+API_HASH = '9e8723baa78737f27edf76f83ad4cca3'
+PHONE    = '+821044484242'
 
-# 봇 토큰: 텔레그램에서 @BotFather 로 만든 봇
-BOT_TOKEN  = '8245986955:AAG1yc6Pxo_41CI2ll6-Rdcs73OjpEi7pxc'
-
-# 내 텔레그램 user ID (봇이 메시지를 보낼 대상)
-# @userinfobot 에게 /start 보내면 확인 가능
-MY_CHAT_ID = 7629108771
+# main.js 가 폴링(감시)하는 봇의 ID
+# 봇 토큰 앞부분 숫자: 8417495207:AAEVnHRc9h... → 8417495207
+TG_BOT_ID = 8417495207
 
 # ══════════════════════════════════════════════════════
 # 📡  감지할 키워드 목록
 # ══════════════════════════════════════════════════════
 KEYWORDS = [
     "sndk", "mu", "micron", "마이크론",
-    "fsly", "fastly", "viav", "crcl", "rklb",
+    "fsly", "fastly", "viav", "crcl", "rklb", "pl",
     "삼성전자", "sk하이닉스", "하이닉스",
     "로켓랩", "플래닛랩스",
     "폼팩터", "버노바", "베르노바", "패슬리", "패스틀리",
-    "form", "gev", "aaoi",
+    "form", "kla", "gev", "aaoi",
     "nvda", "엔비디아", "nvidia", "tsmc", "avgo",
-    "샌디스크", "western digital",
+    "샌디스크", "wd", "western digital",
     "hbm", "hbm3", "hbm4", "nand", "낸드", "dram", "디램",
     "반도체", "ai인프라", "hbf", "키오시아", "키옥시아",
-    "cpu", "gpu", "젠슨황",
+    "cpu", "gpu", "젠슨황", "jensen huang",
     "openai", "chatgpt", "claude", "anthropic",
     "앤트로픽", "엔트로픽", "클로드",
-    "kalc", "crdo", "크리도",
+    "kalc", "kal", "crdo", "크리도",
     "버티브", "vrt", "tsla", "테슬라",
     "데이터센터", "온디바이스",
 ]
 
-TELEGRAM_API = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-MAX_LEN      = 4000   # Telegram 한 메시지 최대 4096자, 여유분 확보
+MAX_LEN = 4000  # 텔레그램 메시지 최대 4096자, 여유분 확보
 
-client   = TelegramClient('또봇세션', API_ID, API_HASH)
-seen     = set()
-_session = None
+client = TelegramClient('또봇세션', API_ID, API_HASH)
+seen   = set()
 
 
-async def get_session():
-    global _session
-    if _session is None or _session.closed:
-        _session = aiohttp.ClientSession()
-    return _session
-
-
-async def send_to_me(text: str) -> bool:
+async def send_to_bot(text: str):
     """
-    봇 API 로 내 텔레그램에 메시지 전송.
-    4000자 초과 시 자동으로 잘라서 여러 번 전송.
-    반환값: 전체 성공 True / 하나라도 실패 False
+    Telethon 으로 main.js 폴링 봇에게 직접 메시지 전송.
+    main.js 의 getUpdates 가 이 메시지를 받아서 카톡으로 전달함.
     """
-    session = await get_session()
-    chunks  = [text[i:i + MAX_LEN] for i in range(0, len(text), MAX_LEN)]
-
+    chunks = [text[i:i + MAX_LEN] for i in range(0, len(text), MAX_LEN)]
     for chunk in chunks:
-        try:
-            async with session.post(
-                TELEGRAM_API,
-                json={"chat_id": MY_CHAT_ID, "text": chunk},
-                timeout=aiohttp.ClientTimeout(total=10)
-            ) as resp:
-                if resp.status == 200:
-                    logging.info(f"  봇 전송 성공 ({len(chunk)}자)")
-                else:
-                    body = await resp.text()
-                    logging.warning(f"  봇 전송 실패 {resp.status}: {body[:200]}")
-                    return False
-        except Exception as e:
-            logging.error(f"  봇 전송 오류: {e}")
-            return False
-
-    return True
+        await client.send_message(TG_BOT_ID, chunk)
+        if len(chunks) > 1:
+            await asyncio.sleep(0.5)
 
 
 @client.on(events.NewMessage)
@@ -119,11 +89,11 @@ async def on_new_message(event):
 
     logging.info(f"키워드 감지 [{chat_title}]: {msg[:80]}")
 
-    ok = await send_to_me(msg)
-    if ok:
-        logging.info(f"✅ 카톡 전달 완료 [{chat_title}]")
-    else:
-        logging.warning(f"❌ 전달 실패 [{chat_title}]")
+    try:
+        await send_to_bot(msg)
+        logging.info(f"✅ 봇 전달 완료 [{chat_title}]")
+    except Exception as e:
+        logging.error(f"❌ 봇 전달 실패 [{chat_title}]: {e}")
 
 
 async def main():
