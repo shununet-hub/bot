@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import aiohttp
 from telethon import TelegramClient, events
 
 logging.basicConfig(
@@ -9,15 +10,21 @@ logging.basicConfig(
 )
 
 # ══════════════════════════════════════════════════════
-# ⚙️  텔레그램 로그인 정보  (변경하지 마세요)
+# ⚙️  설정
 # ══════════════════════════════════════════════════════
-API_ID   = 39179196
-API_HASH = '9e8723baa78737f27edf76f83ad4cca3'
-PHONE    = '+821044484242'
+API_ID     = 39179196
+API_HASH   = '9e8723baa78737f27edf76f83ad4cca3'
+PHONE      = '+821044484242'
+
+# 봇 토큰: 텔레그램에서 @BotFather 로 만든 봇
+BOT_TOKEN  = '8245986955:AAG1yc6Pxo_41CI2ll6-Rdcs73OjpEi7pxc'
+
+# 내 텔레그램 user ID (봇이 메시지를 보낼 대상)
+# @userinfobot 에게 /start 보내면 확인 가능
+MY_CHAT_ID = 7629108771
 
 # ══════════════════════════════════════════════════════
 # 📡  감지할 키워드 목록
-#     이 단어가 들어간 메시지만 카톡으로 전달됩니다
 # ══════════════════════════════════════════════════════
 KEYWORDS = [
     "sndk", "mu", "micron", "마이크론",
@@ -38,13 +45,53 @@ KEYWORDS = [
     "데이터센터", "온디바이스",
 ]
 
-client = TelegramClient('또봇세션', API_ID, API_HASH)
-seen   = set()
+TELEGRAM_API = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+MAX_LEN      = 4000   # Telegram 한 메시지 최대 4096자, 여유분 확보
+
+client   = TelegramClient('또봇세션', API_ID, API_HASH)
+seen     = set()
+_session = None
+
+
+async def get_session():
+    global _session
+    if _session is None or _session.closed:
+        _session = aiohttp.ClientSession()
+    return _session
+
+
+async def send_to_me(text: str) -> bool:
+    """
+    봇 API 로 내 텔레그램에 메시지 전송.
+    4000자 초과 시 자동으로 잘라서 여러 번 전송.
+    반환값: 전체 성공 True / 하나라도 실패 False
+    """
+    session = await get_session()
+    chunks  = [text[i:i + MAX_LEN] for i in range(0, len(text), MAX_LEN)]
+
+    for chunk in chunks:
+        try:
+            async with session.post(
+                TELEGRAM_API,
+                json={"chat_id": MY_CHAT_ID, "text": chunk},
+                timeout=aiohttp.ClientTimeout(total=10)
+            ) as resp:
+                if resp.status == 200:
+                    logging.info(f"  봇 전송 성공 ({len(chunk)}자)")
+                else:
+                    body = await resp.text()
+                    logging.warning(f"  봇 전송 실패 {resp.status}: {body[:200]}")
+                    return False
+        except Exception as e:
+            logging.error(f"  봇 전송 오류: {e}")
+            return False
+
+    return True
 
 
 @client.on(events.NewMessage)
 async def on_new_message(event):
-    # 내가 보낸 메시지 / 개인 DM 은 무시
+    # 내가 보낸 메시지 / 개인 DM 무시
     if event.out or event.is_private:
         return
 
@@ -62,7 +109,7 @@ async def on_new_message(event):
     if key in seen:
         return
     seen.add(key)
-    if len(seen) > 2000:          # 오래된 절반 비우기
+    if len(seen) > 2000:
         old = list(seen)
         seen.clear()
         seen.update(old[-1000:])
@@ -70,15 +117,13 @@ async def on_new_message(event):
     chat       = await event.get_chat()
     chat_title = getattr(chat, 'title', '') or getattr(chat, 'username', '') or '채널'
 
-    try:
-        # ★ 핵심: 텔레그램 "나에게 저장"으로 전달
-        #   → 폰에서 텔레그램 알림 발생
-        #   → MessengerBot R 이 알림을 가로챔
-        #   → main.js 가 카톡방 "삼하마샌" 으로 전달
-        await client.forward_messages("me", event.message)
-        logging.info(f"✅ 저장완료 [{chat_title}]: {msg[:80]}")
-    except Exception as e:
-        logging.error(f"❌ 저장실패 [{chat_title}]: {e}")
+    logging.info(f"키워드 감지 [{chat_title}]: {msg[:80]}")
+
+    ok = await send_to_me(msg)
+    if ok:
+        logging.info(f"✅ 카톡 전달 완료 [{chat_title}]")
+    else:
+        logging.warning(f"❌ 전달 실패 [{chat_title}]")
 
 
 async def main():
