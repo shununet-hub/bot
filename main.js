@@ -568,38 +568,49 @@ function commasFloat(n) {
   return parts.join(".");
 }
 
+function strWidth(s) {
+  var w = 0;
+  for (var i = 0; i < s.length; i++) w += (s.charCodeAt(i) > 0x7F) ? 2 : 1;
+  return w;
+}
+
+function padEnd(s, targetW) {
+  var result = s;
+  for (var i = strWidth(s); i < targetW; i++) result += " ";
+  return result;
+}
+
 // ── 단일 종목 포맷 ────────────────────────────────────────────────────
 function formatQuote(info, displayName) {
   var isKRW   = (info.currency === "KRW");
   var isJPY   = (info.currency === "JPY");
   var isIndex = (info.symbol.charAt(0) === "^");
   var arrow   = info.change >= 0 ? "▲" : "▼";
-  var sign    = info.change >= 0 ? "+" : "";
   var dispSym = info.symbol.replace(/\.(KS|KQ|T)$/, "").replace(/^\^/, "");
   var name    = displayName || info.name;
 
   var priceStr, chgStr, prevStr;
   if (isKRW) {
     priceStr = "₩" + commasInt(info.price);
-    chgStr   = sign + commasInt(info.change);
+    chgStr   = commasInt(Math.abs(info.change));
     prevStr  = "₩" + commasInt(info.prevClose);
   } else if (isJPY) {
     priceStr = "¥" + commasInt(info.price);
-    chgStr   = sign + commasInt(info.change);
+    chgStr   = commasInt(Math.abs(info.change));
     prevStr  = "¥" + commasInt(info.prevClose);
   } else if (isIndex) {
     priceStr = commasFloat(info.price);
-    chgStr   = sign + commasFloat(Math.abs(info.change));
+    chgStr   = commasFloat(Math.abs(info.change));
     prevStr  = commasFloat(info.prevClose);
   } else {
     priceStr = "$" + commasFloat(info.price);
-    chgStr   = sign + commasFloat(Math.abs(info.change));
+    chgStr   = commasFloat(Math.abs(info.change));
     prevStr  = "$" + commasFloat(info.prevClose);
   }
 
   return "📊 " + name + " (" + dispSym + ")\n\n" +
     "현재가: " + priceStr + "\n" +
-    arrow + " " + chgStr + " (" + sign + info.changePct.toFixed(2) + "%)\n" +
+    arrow + " " + chgStr + " (" + Math.abs(info.changePct).toFixed(2) + "%)\n" +
     "전일종가: " + prevStr;
 }
 
@@ -608,16 +619,20 @@ function fetchAllIndices() {
   var syms = [];
   for (var i = 0; i < ALL_INDICES.length; i++) syms.push(ALL_INDICES[i].symbol);
   var map = fetchQuoteBatch(syms);
+  var maxW = 0;
+  for (var i = 0; i < ALL_INDICES.length; i++) {
+    var w = strWidth(ALL_INDICES[i].label);
+    if (w > maxW) maxW = w;
+  }
   var lines = ["📈 주요 지수\n"];
   for (var i = 0; i < ALL_INDICES.length; i++) {
     var idx  = ALL_INDICES[i];
     var info = map[idx.symbol];
-    if (!info) { lines.push(idx.label + " 조회 실패"); continue; }
+    if (!info) { lines.push(padEnd(idx.label, maxW) + "  조회 실패"); continue; }
     var arrow = info.change >= 0 ? "▲" : "▼";
-    var sign  = info.change >= 0 ? "+" : "";
     lines.push(
-      idx.label + " " + commasFloat(info.price) +
-      " (" + arrow + sign + info.changePct.toFixed(2) + "%)"
+      padEnd(idx.label, maxW) + "  " + commasFloat(info.price) +
+      " (" + arrow + Math.abs(info.changePct).toFixed(2) + "%)"
     );
   }
   return lines.join("\n");
@@ -626,22 +641,22 @@ function fetchAllIndices() {
 // ── /유가 ─────────────────────────────────────────────────────────────
 function fetchOilPrice() {
   var map = fetchQuoteBatch(["CL=F", "BZ=F"]);
+  var maxW = Math.max(strWidth("WTI"), strWidth("브렌트유"));
   function oilLine(label, symbol) {
     var info = map[symbol];
-    if (!info) return label + ": 조회 실패";
+    if (!info) return padEnd(label, maxW) + "  조회 실패";
     var arrow = info.change >= 0 ? "▲" : "▼";
-    var sign  = info.change >= 0 ? "+" : "";
-    return label + " " + commasFloat(info.price) +
-      "(" + arrow + sign + info.changePct.toFixed(2) + "%)";
+    return padEnd(label, maxW) + "  " + commasFloat(info.price) +
+      " (" + arrow + Math.abs(info.changePct).toFixed(2) + "%)";
   }
   return oilLine("WTI", "CL=F") + "\n" + oilLine("브렌트유", "BZ=F");
 }
 
 // ── 섹터 요약 ─────────────────────────────────────────────────────────
-function sectorLine(item, useTicker, preInfo) {
+function sectorLine(item, useTicker, preInfo, labelWidth) {
   var info = (preInfo !== undefined) ? preInfo : fetchQuote(item.s);
   var label = (useTicker && /^[A-Z]+$/.test(item.s)) ? item.s : item.n;
-  if (!info) return label + "  -";
+  if (!info) return padEnd(label, labelWidth || 0) + "  -";
   var isKRW  = (info.currency === "KRW");
   var isJPY  = (info.currency === "JPY");
   var arrow  = info.change >= 0 ? "▲" : "▽";
@@ -649,7 +664,7 @@ function sectorLine(item, useTicker, preInfo) {
   var price  = isKRW ? commasInt(info.price)
              : isJPY ? "¥" + commasInt(info.price)
              : "$" + commasFloat(info.price);
-  return label + "  " + price + " (" + arrow + pct + ")";
+  return padEnd(label, labelWidth || 0) + "  " + price + " (" + arrow + pct + ")";
 }
 
 function buildSectorMsg(title, stocks, extra, useTicker, footer) {
@@ -657,11 +672,17 @@ function buildSectorMsg(title, stocks, extra, useTicker, footer) {
   var syms = [];
   for (var i = 0; i < allItems.length; i++) syms.push(allItems[i].s);
   var map = fetchQuoteBatch(syms);
+  var maxW = 0;
+  for (var i = 0; i < allItems.length; i++) {
+    var lbl = (useTicker && /^[A-Z]+$/.test(allItems[i].s)) ? allItems[i].s : allItems[i].n;
+    var w = strWidth(lbl);
+    if (w > maxW) maxW = w;
+  }
   var lines = [title + "\n"];
-  for (var i = 0; i < stocks.length; i++) lines.push(sectorLine(stocks[i], useTicker, map[stocks[i].s] || null));
+  for (var i = 0; i < stocks.length; i++) lines.push(sectorLine(stocks[i], useTicker, map[stocks[i].s] || null, maxW));
   if (extra && extra.length) {
     lines.push("");
-    for (var j = 0; j < extra.length; j++) lines.push(sectorLine(extra[j], useTicker, map[extra[j].s] || null));
+    for (var j = 0; j < extra.length; j++) lines.push(sectorLine(extra[j], useTicker, map[extra[j].s] || null, maxW));
   }
   if (footer) lines.push("\n" + footer);
   return lines.join("\n");
@@ -675,19 +696,32 @@ function fetchCombinedSemi() {
   for (var i = 0; i < allItems.length; i++) syms.push(allItems[i].s);
   var map = fetchQuoteBatch(syms);
 
+  var krMaxW = 0;
+  for (var i = 0; i < krStocks.length; i++) {
+    var w = strWidth(krStocks[i].n);
+    if (w > krMaxW) krMaxW = w;
+  }
+  var intlItems = INTL_SEMI_STOCKS.concat(INTL_SEMI_EXTRA);
+  var intlMaxW = 0;
+  for (var i = 0; i < intlItems.length; i++) {
+    var lbl = /^[A-Z]+$/.test(intlItems[i].s) ? intlItems[i].s : intlItems[i].n;
+    var w = strWidth(lbl);
+    if (w > intlMaxW) intlMaxW = w;
+  }
+
   var kr = ["🇰🇷 한국 반도체 시세\n"];
   for (var i = 0; i < krStocks.length; i++) {
-    kr.push(sectorLine(krStocks[i], false, map[krStocks[i].s] || null));
+    kr.push(sectorLine(krStocks[i], false, map[krStocks[i].s] || null, krMaxW));
   }
 
   var intl = ["🌐 해외 반도체 시세\n"];
   for (var j = 0; j < INTL_SEMI_STOCKS.length; j++) {
-    intl.push(sectorLine(INTL_SEMI_STOCKS[j], true, map[INTL_SEMI_STOCKS[j].s] || null));
+    intl.push(sectorLine(INTL_SEMI_STOCKS[j], true, map[INTL_SEMI_STOCKS[j].s] || null, intlMaxW));
   }
   if (INTL_SEMI_EXTRA.length) {
     intl.push("");
     for (var k = 0; k < INTL_SEMI_EXTRA.length; k++) {
-      intl.push(sectorLine(INTL_SEMI_EXTRA[k], true, map[INTL_SEMI_EXTRA[k].s] || null));
+      intl.push(sectorLine(INTL_SEMI_EXTRA[k], true, map[INTL_SEMI_EXTRA[k].s] || null, intlMaxW));
     }
   }
   intl.push("\n(본장시간 외 종가로 표기)");
