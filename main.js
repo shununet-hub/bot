@@ -7,6 +7,7 @@ var GEMINI_API_KEY = "AIzaSyAuhEhz1AmQ0_PniGWkqzAx8qSrl08eyVc";
 var LOOKUP = {
   "지수":       "__ALL_INDICES__",
   "유가":       "__OILPRICE__",
+  "원자재":     "__COMMODITIES__",
   "반도체":     "__SEMI_COMBINED__",
   "한국반도체": "__KR_SEMI__",
   "해외반도체": "__INTL_SEMI__",
@@ -194,6 +195,15 @@ var US_TECH_STOCKS = [
   { s: "AVGO",  n: "Broadcom" },
   { s: "NFLX",  n: "Netflix" },
   { s: "ORCL",  n: "Oracle" },
+];
+
+var COMMODITIES_STOCKS = [
+  { s: "CL=F",  n: "WTI원유" },
+  { s: "BZ=F",  n: "브렌트유" },
+  { s: "NG=F",  n: "천연가스" },
+  { s: "ZW=F",  n: "밀" },
+  { s: "ZC=F",  n: "옥수수" },
+  { s: "ZS=F",  n: "대두" },
 ];
 
 // ── URL 인코딩 ────────────────────────────────────────────────────────
@@ -735,6 +745,7 @@ function handleSlash(query, replier) {
 
   if (entry === "__ALL_INDICES__")   { replier.reply(fetchAllIndices());   return; }
   if (entry === "__OILPRICE__")      { replier.reply(fetchOilPrice());     return; }
+  if (entry === "__COMMODITIES__")   { replier.reply(buildSectorMsg("📦 원자재 시세 (달러 기준)", COMMODITIES_STOCKS, null, false, null)); return; }
   if (entry === "__SEMI_COMBINED__") { replier.reply(fetchCombinedSemi()); return; }
   if (entry === "__KR_SEMI__")       { replier.reply(buildSectorMsg("🇰🇷 한국 반도체 시세", KR_SEMI_STOCKS, null, false, null)); return; }
   if (entry === "__INTL_SEMI__")   { replier.reply(buildSectorMsg("🌐 해외 반도체 시세", INTL_SEMI_STOCKS, INTL_SEMI_EXTRA, true, "(본장시간 외 종가로 표기)")); return; }
