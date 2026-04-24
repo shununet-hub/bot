@@ -1173,36 +1173,6 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       }
     }
 
-    // ── 트럼프/미주 방 → 삼하마샌 전달 (소스 방에서 봇 무응답) ──
-    var isFromTrump = room.indexOf("트럼프") !== -1;
-    var isFromMiju  = room.indexOf("미주") !== -1;
-
-    if (isFromTrump || isFromMiju) {
-      var targetSess = sent["__session__삼하마샌"];
-
-      if (isFromTrump && msg.length > 5) {
-        if (!isDup(dedupKey(msg))) {
-          if (targetSess) targetSess.reply(msg);
-          else Api.replyRoom("삼하마샌", msg);
-        }
-        return;
-      }
-
-      if (isFromMiju && msg.length >= 100) {
-        var msgLowerK = msg.toLowerCase();
-        var hasKw = KEYWORDS.some(function(kw) {
-          return msgLowerK.indexOf(kw.toLowerCase()) !== -1;
-        });
-        if (hasKw && !isDup(dedupKey(msg))) {
-          if (targetSess) targetSess.reply(msg);
-          else Api.replyRoom("삼하마샌", msg);
-        }
-        return;
-      }
-
-      return;
-    }
-
     return;
   }
 
