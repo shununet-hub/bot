@@ -28,6 +28,7 @@ var LOOKUP = {
   "바이오":     "__KR_BIO__",
   "자동차":     "__KR_AUTO__",
   "금융":       "__KR_FINANCE__",
+  "증권":       "__KR_SEC__",
   "철강":       "__KR_STEEL__",
 
   "기술주":       "__US_TECH__",
@@ -327,6 +328,19 @@ var KR_FINANCE_STOCKS = [
   { s: "006800.KS", n: "미래에셋증권" }
 ];
 
+var KR_SEC_STOCKS = [
+  { s: "006800.KS", n: "미래에셋증권" },
+  { s: "071050.KS", n: "한국금융지주" },
+  { s: "016360.KS", n: "삼성증권" },
+  { s: "039490.KQ", n: "키움증권" },
+  { s: "005940.KS", n: "NH투자증권" },
+  { s: "008560.KS", n: "메리츠증권" },
+  { s: "003540.KS", n: "대신증권" },
+  { s: "001500.KS", n: "현대차증권" },
+  { s: "030610.KS", n: "교보증권" },
+  { s: "006140.KS", n: "하이투자증권" }
+];
+
 var KR_STEEL_STOCKS = [
   { s: "005490.KS", n: "POSCO홀딩스" },
   { s: "004020.KS", n: "현대제철" },
@@ -511,7 +525,7 @@ function sendToRoom(roomName, message) {
 var DEDUP_TTL = 2 * 60 * 60 * 1000; // 2시간
 
 function cleanSent() {
-  var now = Date.now();
+  var now = new Date().getTime();
   var keep = {};
   for (var k in sent) {
     if (k.indexOf("__session__") === 0) { keep[k] = sent[k]; continue; }
@@ -525,7 +539,7 @@ function dedupKey(text) {
 }
 
 function isDup(key) {
-  var now = Date.now();
+  var now = new Date().getTime();
   if (sent[key] && now - sent[key] < DEDUP_TTL) return true;
   sent[key] = now;
   cleanSent();
@@ -1083,6 +1097,7 @@ function handleSlash(query, replier) {
   if (entry === "__KR_BIO__")        { replier.reply(buildSectorMsg("💉 바이오 시세", KR_BIO_STOCKS, null, false, null)); return; }
   if (entry === "__KR_AUTO__")       { replier.reply(buildSectorMsg("🚗 자동차 시세", KR_AUTO_STOCKS, null, false, null)); return; }
   if (entry === "__KR_FINANCE__")    { replier.reply(buildSectorMsg("🏦 금융 시세", KR_FINANCE_STOCKS, null, false, null)); return; }
+  if (entry === "__KR_SEC__")        { replier.reply(buildSectorMsg("📈 증권 시세", KR_SEC_STOCKS, null, false, null)); return; }
   if (entry === "__KR_STEEL__")      { replier.reply(buildSectorMsg("⚙️ 철강 시세", KR_STEEL_STOCKS, null, false, null)); return; }
   if (entry === "__US_TECH__")       { replier.reply(buildSectorMsg("🇺🇸 미국 기술주 시세", US_TECH_STOCKS, null, true, "(본장시간 외 종가로 표기)")); return; }
   if (entry === "__US_FINANCE__")    { replier.reply(buildSectorMsg("🇺🇸 미국 금융 시세", US_FINANCE_STOCKS, null, true, "(본장시간 외 종가로 표기)")); return; }
