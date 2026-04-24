@@ -508,14 +508,28 @@ function sendToRoom(roomName, message) {
 }
 
 // ── sent 초기화 (세션 replier는 보존) ────────────────────────────────
+var DEDUP_TTL = 2 * 60 * 60 * 1000; // 2시간
+
 function cleanSent() {
-  if (Object.keys(sent).length > 500) {
-    var keep = {};
-    for (var k in sent) {
-      if (k.indexOf("__session__") === 0) keep[k] = sent[k];
-    }
-    sent = keep;
+  var now = Date.now();
+  var keep = {};
+  for (var k in sent) {
+    if (k.indexOf("__session__") === 0) { keep[k] = sent[k]; continue; }
+    if (typeof sent[k] === "number" && now - sent[k] < DEDUP_TTL) keep[k] = sent[k];
   }
+  sent = keep;
+}
+
+function dedupKey(text) {
+  return text.replace(/[^가-힣a-zA-Z0-9]/g, "").substring(0, 80);
+}
+
+function isDup(key) {
+  var now = Date.now();
+  if (sent[key] && now - sent[key] < DEDUP_TTL) return true;
+  sent[key] = now;
+  cleanSent();
+  return false;
 }
 
 // ── 국내 종목 검색: 네이버 자동완성 (1차) → Yahoo KR 검색 (2차) ──────
@@ -1153,8 +1167,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
     var ytUrl = extractYoutubeUrl(msg);
     if (ytUrl) {
       var ytKey = "yt_" + ytUrl.slice(-20);
-      if (!sent[ytKey]) {
-        sent[ytKey] = true;
+      if (!isDup(ytKey)) {
         replier.reply("🎬 영상 분석 중...");
         replier.reply("📝 요약\n\n" + summarizeYoutube(ytUrl));
       }
@@ -1168,9 +1181,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       var targetSess = sent["__session__삼하마샌"];
 
       if (isFromTrump && msg.length > 5) {
-        var key2 = msg.substring(0, 100).replace(/\s/g, "");
-        if (!sent[key2]) {
-          sent[key2] = true;
+        if (!isDup(dedupKey(msg))) {
           if (targetSess) targetSess.reply(msg);
           else Api.replyRoom("삼하마샌", msg);
         }
@@ -1182,13 +1193,9 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         var hasKw = KEYWORDS.some(function(kw) {
           return msgLowerK.indexOf(kw.toLowerCase()) !== -1;
         });
-        if (hasKw) {
-          var key3 = msg.substring(0, 100).replace(/\s/g, "");
-          if (!sent[key3]) {
-            sent[key3] = true;
-            if (targetSess) targetSess.reply(msg);
-            else Api.replyRoom("삼하마샌", msg);
-          }
+        if (hasKw && !isDup(dedupKey(msg))) {
+          if (targetSess) targetSess.reply(msg);
+          else Api.replyRoom("삼하마샌", msg);
         }
         return;
       }
@@ -1209,11 +1216,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
 
   if (!matched) return;
 
-  var key = msg.substring(0, 100).replace(/\s/g, "");
-  if (sent[key]) return;
-  sent[key] = true;
-
-  cleanSent();
+  if (isDup(dedupKey(msg))) return;
 
   java.lang.Thread.sleep(2000);
   sendToRoom("삼하마샌", msg);
