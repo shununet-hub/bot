@@ -183,7 +183,7 @@ var ALL_INDICES = [
   { label: "나스닥",   symbol: "^IXIC" },
   { label: "S&P500",   symbol: "^GSPC" },
   { label: "다우",     symbol: "^DJI"  },
-  { label: "러셀2000", symbol: "^RUT"  },
+  { label: "러셀2000", symbol: "^RUT"  }
 ];
 
 var KR_SEMI_STOCKS = [
@@ -193,7 +193,7 @@ var KR_SEMI_STOCKS = [
   { s: "042700.KS", n: "한미반도체" },
   { s: "058470.KQ", n: "리노공업" },
   { s: "403870.KQ", n: "HPSP" },
-  { s: "000990.KS", n: "DB하이텍" },
+  { s: "000990.KS", n: "DB하이텍" }
 ];
 
 var INTL_SEMI_STOCKS = [
@@ -206,11 +206,11 @@ var INTL_SEMI_STOCKS = [
   { s: "MU",    n: "Micron" },
   { s: "KLAC",  n: "KLA" },
   { s: "INTC",  n: "Intel" },
-  { s: "SNDK",  n: "SanDisk" },
+  { s: "SNDK",  n: "SanDisk" }
 ];
 
 var INTL_SEMI_EXTRA = [
-  { s: "285A.T", n: "키오시아" },
+  { s: "285A.T", n: "키오시아" }
 ];
 
 var US_TECH_STOCKS = [
@@ -223,7 +223,7 @@ var US_TECH_STOCKS = [
   { s: "AVGO",  n: "Broadcom" },
   { s: "TSLA",  n: "Tesla" },
   { s: "ORCL",  n: "Oracle" },
-  { s: "NFLX",  n: "Netflix" },
+  { s: "NFLX",  n: "Netflix" }
 ];
 
 var COMMODITIES_STOCKS = [
@@ -232,7 +232,7 @@ var COMMODITIES_STOCKS = [
   { s: "NG=F",  n: "천연가스" },
   { s: "ZW=F",  n: "밀" },
   { s: "ZC=F",  n: "옥수수" },
-  { s: "ZS=F",  n: "대두" },
+  { s: "ZS=F",  n: "대두" }
 ];
 
 var METALS_STOCKS = [
@@ -240,7 +240,7 @@ var METALS_STOCKS = [
   { s: "SI=F",  n: "은" },
   { s: "HG=F",  n: "구리" },
   { s: "PL=F",  n: "백금" },
-  { s: "PA=F",  n: "팔라듐" },
+  { s: "PA=F",  n: "팔라듐" }
 ];
 
 var CRYPTO_STOCKS = [
@@ -248,7 +248,7 @@ var CRYPTO_STOCKS = [
   { s: "ETH-USD", n: "이더리움" },
   { s: "XRP-USD", n: "리플" },
   { s: "SOL-USD", n: "솔라나" },
-  { s: "BNB-USD", n: "BNB" },
+  { s: "BNB-USD", n: "BNB" }
 ];
 
 // ── 한국 섹터 ─────────────────────────────────────────────────────────
@@ -258,7 +258,7 @@ var KR_SHIP_STOCKS = [
   { s: "010140.KS", n: "삼성중공업" },
   { s: "042660.KS", n: "한화오션" },
   { s: "267250.KS", n: "HD현대" },
-  { s: "082740.KS", n: "HD현대마린엔진" },
+  { s: "082740.KS", n: "HD현대마린엔진" }
 ];
 
 var KR_DEFENSE_STOCKS = [
@@ -266,7 +266,7 @@ var KR_DEFENSE_STOCKS = [
   { s: "272210.KS", n: "한화시스템" },
   { s: "079550.KS", n: "LIG넥스원" },
   { s: "047810.KS", n: "한국항공우주" },
-  { s: "064350.KS", n: "현대로템" },
+  { s: "064350.KS", n: "현대로템" }
 ];
 
 var KR_CHEM_STOCKS = [
@@ -274,7 +274,7 @@ var KR_CHEM_STOCKS = [
   { s: "011170.KS", n: "롯데케미칼" },
   { s: "096770.KS", n: "SK이노베이션" },
   { s: "011780.KS", n: "금호석유" },
-  { s: "006400.KS", n: "삼성SDI" },
+  { s: "006400.KS", n: "삼성SDI" }
 ];
 
 var KR_CONST_STOCKS = [
@@ -282,7 +282,7 @@ var KR_CONST_STOCKS = [
   { s: "006360.KS", n: "GS건설" },
   { s: "047040.KS", n: "대우건설" },
   { s: "294870.KS", n: "HDC현대산업개발" },
-  { s: "375500.KS", n: "DL이앤씨" },
+  { s: "375500.KS", n: "DL이앤씨" }
 ];
 
 var KR_ENERGY_STOCKS = [
@@ -290,7 +290,7 @@ var KR_ENERGY_STOCKS = [
   { s: "034020.KS", n: "두산에너빌리티" },
   { s: "010950.KS", n: "S-Oil" },
   { s: "096770.KS", n: "SK이노베이션" },
-  { s: "298040.KS", n: "효성중공업" },
+  { s: "298040.KS", n: "효성중공업" }
 ];
 
 var KR_ROBOT_STOCKS = [
@@ -298,7 +298,7 @@ var KR_ROBOT_STOCKS = [
   { s: "277810.KQ", n: "레인보우로보틱스" },
   { s: "064350.KS", n: "현대로템" },
   { s: "090360.KQ", n: "로보스타" },
-  { s: "267250.KS", n: "HD현대" },
+  { s: "267250.KS", n: "HD현대" }
 ];
 
 var KR_BIO_STOCKS = [
@@ -307,7 +307,7 @@ var KR_BIO_STOCKS = [
   { s: "000100.KS", n: "유한양행" },
   { s: "128940.KS", n: "한미약품" },
   { s: "028300.KQ", n: "HLB" },
-  { s: "091990.KQ", n: "셀트리온헬스케어" },
+  { s: "091990.KQ", n: "셀트리온헬스케어" }
 ];
 
 var KR_AUTO_STOCKS = [
@@ -315,7 +315,7 @@ var KR_AUTO_STOCKS = [
   { s: "000270.KS", n: "기아" },
   { s: "012330.KS", n: "현대모비스" },
   { s: "204320.KS", n: "HL만도" },
-  { s: "011210.KS", n: "현대위아" },
+  { s: "011210.KS", n: "현대위아" }
 ];
 
 var KR_FINANCE_STOCKS = [
@@ -324,14 +324,14 @@ var KR_FINANCE_STOCKS = [
   { s: "086790.KS", n: "하나금융지주" },
   { s: "316140.KS", n: "우리금융지주" },
   { s: "032830.KS", n: "삼성생명" },
-  { s: "006800.KS", n: "미래에셋증권" },
+  { s: "006800.KS", n: "미래에셋증권" }
 ];
 
 var KR_STEEL_STOCKS = [
   { s: "005490.KS", n: "POSCO홀딩스" },
   { s: "004020.KS", n: "현대제철" },
   { s: "001230.KS", n: "동국제강" },
-  { s: "002710.KS", n: "TCC동양" },
+  { s: "002710.KS", n: "TCC동양" }
 ];
 
 // ── 미국 섹터 ─────────────────────────────────────────────────────────
@@ -342,7 +342,7 @@ var US_FINANCE_STOCKS = [
   { s: "GS",   n: "Goldman Sachs" },
   { s: "MS",   n: "Morgan Stanley" },
   { s: "BLK",  n: "BlackRock" },
-  { s: "C",    n: "Citigroup" },
+  { s: "C",    n: "Citigroup" }
 ];
 
 var US_HEALTH_STOCKS = [
@@ -352,7 +352,7 @@ var US_HEALTH_STOCKS = [
   { s: "ABBV", n: "AbbVie" },
   { s: "MRK",  n: "Merck" },
   { s: "PFE",  n: "Pfizer" },
-  { s: "ABT",  n: "Abbott" },
+  { s: "ABT",  n: "Abbott" }
 ];
 
 var US_ENERGY_STOCKS = [
@@ -361,7 +361,7 @@ var US_ENERGY_STOCKS = [
   { s: "COP",  n: "ConocoPhillips" },
   { s: "SLB",  n: "SLB" },
   { s: "EOG",  n: "EOG" },
-  { s: "OXY",  n: "Occidental" },
+  { s: "OXY",  n: "Occidental" }
 ];
 
 var US_DEFENSE_STOCKS = [
@@ -370,7 +370,7 @@ var US_DEFENSE_STOCKS = [
   { s: "NOC",  n: "Northrop" },
   { s: "GD",   n: "General Dynamics" },
   { s: "BA",   n: "Boeing" },
-  { s: "LHX",  n: "L3Harris" },
+  { s: "LHX",  n: "L3Harris" }
 ];
 
 var US_BIO_STOCKS = [
@@ -379,7 +379,7 @@ var US_BIO_STOCKS = [
   { s: "VRTX", n: "Vertex" },
   { s: "REGN", n: "Regeneron" },
   { s: "MRNA", n: "Moderna" },
-  { s: "BIIB", n: "Biogen" },
+  { s: "BIIB", n: "Biogen" }
 ];
 
 var US_CONSUMER_STOCKS = [
@@ -389,7 +389,7 @@ var US_CONSUMER_STOCKS = [
   { s: "HD",   n: "Home Depot" },
   { s: "NKE",  n: "Nike" },
   { s: "MCD",  n: "McDonald's" },
-  { s: "PG",   n: "P&G" },
+  { s: "PG",   n: "P&G" }
 ];
 
 var US_TELECOM_STOCKS = [
@@ -397,7 +397,7 @@ var US_TELECOM_STOCKS = [
   { s: "VZ",    n: "Verizon" },
   { s: "TMUS",  n: "T-Mobile" },
   { s: "CMCSA", n: "Comcast" },
-  { s: "NFLX",  n: "Netflix" },
+  { s: "NFLX",  n: "Netflix" }
 ];
 
 var US_EV_STOCKS = [
@@ -407,7 +407,7 @@ var US_EV_STOCKS = [
   { s: "NIO",  n: "NIO" },
   { s: "XPEV", n: "XPeng" },
   { s: "GM",   n: "GM" },
-  { s: "F",    n: "Ford" },
+  { s: "F",    n: "Ford" }
 ];
 
 var US_REIT_STOCKS = [
@@ -416,7 +416,7 @@ var US_REIT_STOCKS = [
   { s: "EQIX", n: "Equinix" },
   { s: "SPG",  n: "Simon Property" },
   { s: "O",    n: "Realty Income" },
-  { s: "DLR",  n: "Digital Realty" },
+  { s: "DLR",  n: "Digital Realty" }
 ];
 
 var US_CLOUD_STOCKS = [
@@ -427,7 +427,7 @@ var US_CLOUD_STOCKS = [
   { s: "NOW",  n: "ServiceNow" },
   { s: "SNOW", n: "Snowflake" },
   { s: "DDOG", n: "Datadog" },
-  { s: "NET",  n: "Cloudflare" },
+  { s: "NET",  n: "Cloudflare" }
 ];
 
 // ── URL 인코딩 ────────────────────────────────────────────────────────
@@ -984,7 +984,7 @@ function fetchFX() {
     { s: "EURKRW=X", n: "EUR",  mult: 1   },
     { s: "JPYKRW=X", n: "JPY",  mult: 100 },
     { s: "CNYKRW=X", n: "CNY",  mult: 1   },
-    { s: "GBPKRW=X", n: "GBP",  mult: 1   },
+    { s: "GBPKRW=X", n: "GBP",  mult: 1   }
   ];
   var syms = [];
   for (var i = 0; i < pairs.length; i++) syms.push(pairs[i].s);
@@ -1009,7 +1009,7 @@ function fetchTreasury() {
     { s: "^IRX",  n: "미국 3개월" },
     { s: "^FVX",  n: "미국 5년" },
     { s: "^TNX",  n: "미국 10년" },
-    { s: "^TYX",  n: "미국 30년" },
+    { s: "^TYX",  n: "미국 30년" }
   ];
   var syms = [];
   for (var i = 0; i < yields.length; i++) syms.push(yields[i].s);
@@ -1037,7 +1037,7 @@ function fetchFutures() {
     { s: "ES=F",  n: "S&P500선물" },
     { s: "NQ=F",  n: "나스닥선물" },
     { s: "YM=F",  n: "다우선물" },
-    { s: "RTY=F", n: "러셀선물" },
+    { s: "RTY=F", n: "러셀선물" }
   ];
   var syms = [];
   for (var i = 0; i < futures.length; i++) syms.push(futures[i].s);
