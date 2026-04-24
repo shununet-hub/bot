@@ -214,16 +214,16 @@ var INTL_SEMI_EXTRA = [
 ];
 
 var US_TECH_STOCKS = [
+  { s: "NVDA",  n: "NVIDIA" },
   { s: "AAPL",  n: "Apple" },
   { s: "MSFT",  n: "Microsoft" },
-  { s: "NVDA",  n: "NVIDIA" },
   { s: "GOOGL", n: "Alphabet" },
   { s: "AMZN",  n: "Amazon" },
   { s: "META",  n: "Meta" },
-  { s: "TSLA",  n: "Tesla" },
   { s: "AVGO",  n: "Broadcom" },
-  { s: "NFLX",  n: "Netflix" },
+  { s: "TSLA",  n: "Tesla" },
   { s: "ORCL",  n: "Oracle" },
+  { s: "NFLX",  n: "Netflix" },
 ];
 
 var COMMODITIES_STOCKS = [
