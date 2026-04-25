@@ -2,6 +2,8 @@ var sent = {};
 var _fwdCache = [];
 var _yfAuth = null;
 var _yfAuthTs = 0;
+var _krwRate = 1380;
+var _krwRateTs = 0;
 var pendingTelegramMsgs = [];
 var GEMINI_API_KEY = "AIzaSyD2Vm5YH0I-gYQXM2HfojfHNhka5V1Ihqk";  // ← YouTube 요약용 Gemini API 키
 
@@ -424,6 +426,18 @@ function isDup(key) {
   return false;
 }
 
+function getKrwRate() {
+  var now = new Date().getTime();
+  if (now - _krwRateTs < 300000) return _krwRate;
+  try {
+    var map = fetchQuoteBatch(["USDKRW=X"]);
+    if (map["USDKRW=X"] && map["USDKRW=X"].price) {
+      _krwRate = map["USDKRW=X"].price;
+      _krwRateTs = now;
+    }
+  } catch(e) {}
+  return _krwRate;
+}
 function getYFAuth() {
   if (_yfAuth) return _yfAuth;
   var now=java.lang.System.currentTimeMillis();
@@ -591,15 +605,16 @@ function searchKrSymbol(query) {
 
 function commasInt(n) { return Math.round(Math.abs(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g,","); }
 function commasFloat(n) { var parts=Math.abs(n).toFixed(2).split("."); parts[0]=parts[0].replace(/\B(?=(\d{3})+(?!\d))/g,","); return parts.join("."); }
-function formatMarketCap(cap, currency) {
+function formatMarketCap(cap, currency, krwRate) {
   if (!cap) return null;
+  var rate = krwRate || 1380;
   if (currency === "KRW") {
     var jo = cap / 1e12;
     if (jo >= 1) return commasFloat(jo) + "조원";
     return commasInt(cap / 1e8) + "억원";
   }
   var eok = cap / 1e8;
-  var krwJo = (cap * 1380) / 1e12;
+  var krwJo = (cap * rate) / 1e12;
   var usdStr = (eok >= 10000) ? commasFloat(eok / 10000) + "조달러" : commasInt(eok) + "억달러";
   var krwStr = (krwJo >= 1) ? krwJo.toFixed(1) + "조" : commasInt(krwJo * 1000) + "억";
   return usdStr + " (" + krwStr + ")";
@@ -616,7 +631,7 @@ function formatQuote(info, displayName) {
   return "📊 "+name+" ("+dispSym+")\n\n현재가: "+priceStr+"\n"+arrow+" "+chgStr+" ("+Math.abs(info.changePct).toFixed(2)+"%)\n전일종가: "+prevStr;
 }
 
-function formatQuoteDetailed(info, detail, displayName) {
+function formatQuoteDetailed(info, detail, displayName, krwRate) {
   var isKRW = (info.currency === "KRW"), isJPY = (info.currency === "JPY");
   var arrow = info.change >= 0 ? "▲" : "▼";
   var pctSign = info.change >= 0 ? "+" : "-";
@@ -629,18 +644,19 @@ function formatQuoteDetailed(info, detail, displayName) {
   var lines = ["📊 " + name + " (" + dispSym + ")\n"];
   lines.push(priceStr + " " + arrow + chgStr + " (" + pctSign + Math.abs(info.changePct).toFixed(2) + "%)");
   if (detail) {
-    if (detail.sector) lines.push("Sector   : " + detail.sector);
-    if (detail.industry) lines.push("Industry : " + detail.industry);
+    if (detail.sector) lines.push("섹터   : " + detail.sector);
+    if (detail.industry) lines.push("업종   : " + detail.industry);
     var capCurrency = detail.detailCurrency || info.currency;
-    var capStr = formatMarketCap(detail.marketCap, capCurrency);
-    if (capStr) lines.push("시총 : " + capStr);
+    var capStr = formatMarketCap(detail.marketCap, capCurrency, krwRate);
+    if (capStr) lines.push("시총  " + capStr);
   }
   return lines.join("\n");
 }
 function fetchAndFormatDetailed(info, symbol, displayName) {
   var detail = null;
   try { detail = fetchQuoteDetailed(symbol); } catch(e) {}
-  return formatQuoteDetailed(info, detail, displayName);
+  var krwRate = getKrwRate();
+  return formatQuoteDetailed(info, detail, displayName, krwRate);
 }
 function sectorLine(item, useTicker, preInfo) {
   var info=(preInfo!==undefined)?preInfo:fetchQuote(item.s);
