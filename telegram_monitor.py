@@ -47,6 +47,11 @@ async def on_new_message(event):
     if event.out or event.is_private:
         return
 
+    id_key = f"id_{event.chat_id}_{event.message.id}"
+    if id_key in seen:
+        return
+    seen[id_key] = time()
+
     msg_age = datetime.now(timezone.utc) - event.message.date
     if msg_age > timedelta(minutes=30):
         return
