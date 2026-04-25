@@ -482,6 +482,30 @@ function fetchQuote(symbol) {
     return {symbol:meta.symbol||symbol,name:meta.shortName||meta.longName||symbol,price:price,prevClose:prev,change:change,changePct:(change/prev)*100,currency:meta.currency||"USD"};
   } catch(e) { return null; }
 }
+function fetchQuoteDetailed(symbol) {
+  var auth = getYFAuth();
+  var raw = httpGetWithHeaders(
+    "https://query2.finance.yahoo.com/v11/finance/quoteSummary/" +
+    urlEncode(symbol) + "?modules=assetProfile%2Cprice" +
+    (auth ? "&crumb=" + urlEncode(auth.crumb) : ""),
+    auth ? { "Cookie": auth.cookie } : {}
+  );
+  if (!raw) return null;
+  try {
+    var data = JSON.parse(raw);
+    var result = data.quoteSummary && data.quoteSummary.result && data.quoteSummary.result[0];
+    if (!result) return null;
+    var profile = result.assetProfile || {};
+    var priceData = result.price || {};
+    var cap = (priceData.marketCap && priceData.marketCap.raw) || null;
+    return {
+      sector: profile.sector || null,
+      marketCap: cap,
+      summary: profile.longBusinessSummary || null,
+      detailCurrency: priceData.currency || null
+    };
+  } catch(e) { return null; }
+}
 function searchKrSymbol(query) {
   var tries = [query];
   if (query.toUpperCase() !== query) tries.push(query.toUpperCase());
@@ -567,6 +591,19 @@ function searchKrSymbol(query) {
 
 function commasInt(n) { return Math.round(Math.abs(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g,","); }
 function commasFloat(n) { var parts=Math.abs(n).toFixed(2).split("."); parts[0]=parts[0].replace(/\B(?=(\d{3})+(?!\d))/g,","); return parts.join("."); }
+function formatMarketCap(cap, currency) {
+  if (!cap) return null;
+  if (currency === "KRW") {
+    var jo = cap / 1e12;
+    if (jo >= 1) return commasFloat(jo) + "조원";
+    return commasInt(cap / 1e8) + "억원";
+  }
+  var eok = cap / 1e8;
+  var krwJo = (cap * 1380) / 1e12;
+  var usdStr = (eok >= 10000) ? commasFloat(eok / 10000) + "조달러" : commasInt(eok) + "억달러";
+  var krwStr = (krwJo >= 1) ? krwJo.toFixed(1) + "조" : commasInt(krwJo * 1000) + "억";
+  return usdStr + " (" + krwStr + ")";
+}
 function formatQuote(info, displayName) {
   var isKRW=(info.currency==="KRW"),isJPY=(info.currency==="JPY"),isIndex=(info.symbol.charAt(0)==="^");
   var arrow=info.change>=0?"▲":"▼";
@@ -577,7 +614,48 @@ function formatQuote(info, displayName) {
   else if (isIndex){priceStr=commasFloat(info.price);        chgStr=commasFloat(Math.abs(info.change));      prevStr=commasFloat(info.prevClose);}
   else             {priceStr="$"+commasFloat(info.price);    chgStr=commasFloat(Math.abs(info.change));      prevStr="$"+commasFloat(info.prevClose);}
   return "📊 "+name+" ("+dispSym+")\n\n현재가: "+priceStr+"\n"+arrow+" "+chgStr+" ("+Math.abs(info.changePct).toFixed(2)+"%)\n전일종가: "+prevStr;
-
+}
+function callGeminiDesc(name, sector, summary) {
+  if (!summary || summary.length < 50) return null;
+  try {
+    var url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + GEMINI_API_KEY;
+    var prompt = "기업 설명을 보고 투자자 관점 핵심 특징 3가지를 한국어 짧은 문장으로 작성해. 각 항목은 '- '로 시작. 각 항목 35자 이내. 마크다운 기호 금지. 서두 없이 불렛 3개만 출력.\n\n회사: " + name + (sector ? "\n섹터: " + sector : "") + "\n설명: " + summary.substring(0, 600);
+    var body = JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] });
+    var raw = httpPost(url, body);
+    if (!raw) return null;
+    var res = JSON.parse(raw);
+    if (res.error) return null;
+    return (res.candidates[0].content.parts[0].text || "").trim();
+  } catch(e) { return null; }
+}
+function formatQuoteDetailed(info, detail, displayName, bullets) {
+  var isKRW = (info.currency === "KRW"), isJPY = (info.currency === "JPY");
+  var arrow = info.change >= 0 ? "▲" : "▼";
+  var pctSign = info.change >= 0 ? "+" : "-";
+  var dispSym = info.symbol.replace(/\.(KS|KQ|T)$/, "").replace(/^\^/, "");
+  var name = displayName || info.name;
+  var priceStr, chgStr;
+  if (isKRW)      { priceStr = "₩" + commasInt(info.price);    chgStr = commasInt(Math.abs(info.change)); }
+  else if (isJPY) { priceStr = "¥" + commasInt(info.price);    chgStr = commasInt(Math.abs(info.change)); }
+  else            { priceStr = "$" + commasFloat(info.price);   chgStr = commasFloat(Math.abs(info.change)); }
+  var lines = ["📊 " + name + " (" + dispSym + ")\n"];
+  lines.push(priceStr + " " + arrow + chgStr + " (" + pctSign + Math.abs(info.changePct).toFixed(2) + "%)");
+  if (detail) {
+    if (detail.sector) lines.push("섹터 : " + detail.sector);
+    var capCurrency = detail.detailCurrency || info.currency;
+    var capStr = formatMarketCap(detail.marketCap, capCurrency);
+    if (capStr) lines.push("시총 : " + capStr);
+  }
+  if (bullets) { lines.push("\n[기업개요]"); lines.push(bullets); }
+  return lines.join("\n");
+}
+function fetchAndFormatDetailed(info, symbol, displayName) {
+  var detail = null, bullets = null;
+  try { detail = fetchQuoteDetailed(symbol); } catch(e) {}
+  if (detail && detail.summary) {
+    try { bullets = callGeminiDesc(displayName || info.name, detail.sector, detail.summary); } catch(e) {}
+  }
+  return formatQuoteDetailed(info, detail, displayName, bullets);
 }
 function sectorLine(item, useTicker, preInfo) {
   var info=(preInfo!==undefined)?preInfo:fetchQuote(item.s);
@@ -795,13 +873,13 @@ function handleSlash(query, replier) {
   }
   var symbol,displayName;
   if (entry){symbol=entry.s;displayName=entry.n;}
-  else if (/^\d{6}$/.test(query)){var ksInfo=fetchQuote(query+".KS")||fetchNaverQuote(query,query+".KS");if(ksInfo){replier.reply(formatQuote(ksInfo,null));return;}symbol=query+".KQ";displayName=null;}
+  else if (/^\d{6}$/.test(query)){var ksInfo=fetchQuote(query+".KS")||fetchNaverQuote(query,query+".KS");if(ksInfo){replier.reply(fetchAndFormatDetailed(ksInfo,ksInfo.symbol,null));return;}symbol=query+".KQ";displayName=null;}
   else if (/[가-힣]/.test(query)){symbol=searchKrSymbol(query);if(!symbol){replier.reply("⚠️ ["+query+"] 을 찾을 수 없습니다.");return;}displayName=query;}
   else {symbol=query.toUpperCase();displayName=null;}
   var info=fetchQuote(symbol);
   if (!info&&/\.(KS|KQ)$/.test(symbol)) info=fetchNaverQuote(symbol.replace(/\.(KS|KQ)$/,""),symbol);
   if (!info){replier.reply("⚠️ ["+query+"] 을 찾을 수 없습니다.");return;}
-  replier.reply(formatQuote(info,displayName));
+  replier.reply(fetchAndFormatDetailed(info,symbol,displayName));
 }
 
 
