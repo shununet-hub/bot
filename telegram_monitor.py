@@ -47,6 +47,7 @@ async def on_new_message(event):
     if event.out or event.is_private:
         return
 
+    # 메시지 ID 기반 중복 차단 (Telethon 재전송 방지)
     id_key = f"id_{event.chat_id}_{event.message.id}"
     if id_key in seen:
         return
@@ -67,14 +68,29 @@ async def on_new_message(event):
     chat = await event.get_chat()
     chat_title = getattr(chat, 'title', '') or getattr(chat, 'username', '') or '채널'
 
-    key = re.sub(r'[^가-힣a-zA-Z0-9]', '', msg_lower)[10:150]
-    logging.info(f"[감지] {chat_title} | 키: {key[:30]}")
     now = time()
-    if key in seen and now - seen[key] < 7200:
-        logging.info(f"[중복차단] {key[:30]}")
-        return
-    seen[key] = now
-    if len(seen) > 2000:
+
+    # URL 기반 중복 차단
+    url_match = re.search(r'https?://[^\s]+', msg)
+    if url_match:
+        url_key = "url_" + url_match.group(0)
+        if url_key in seen and now - seen[url_key] < 7200:
+            logging.info(f"[URL중복차단] {chat_title}")
+            return
+        seen[url_key] = now
+
+    # 내용 기반 중복 차단 (15자 핑거프린트 — 채널별 도입부 차이 무관)
+    cleaned = re.sub(r'[^가-힣a-zA-Z0-9]', '', msg_lower)
+    if len(cleaned) >= 15:
+        fps = [cleaned[i:i+15] for i in range(min(len(cleaned) - 15, 100))]
+        for fp in fps:
+            if fp in seen and now - seen[fp] < 7200:
+                logging.info(f"[내용중복차단] {chat_title}")
+                return
+        for fp in fps:
+            seen[fp] = now
+
+    if len(seen) > 20000:
         seen = {k: v for k, v in seen.items() if now - v < 7200}
 
     logging.info(f"키워드 감지 [{chat_title}]: {msg[:80]}")
@@ -89,6 +105,10 @@ async def on_new_message(event):
 async def main():
     await client.start(phone=PHONE)
     me = await client.get_me()
+    try:
+        await client.get_entity(TG_BOT_ID)
+    except Exception:
+        pass
     logging.info(f"✅ 로그인 성공: {me.first_name} ({me.phone})")
     logging.info("🔍 텔레그램 채널 모니터링 시작 — 키워드 감지 대기 중...")
     await client.run_until_disconnected()
