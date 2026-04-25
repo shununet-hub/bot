@@ -644,11 +644,11 @@ function formatQuoteDetailed(info, detail, displayName, krwRate) {
   var lines = ["📊 " + name + " (" + dispSym + ")\n"];
   lines.push(priceStr + " " + arrow + chgStr + " (" + pctSign + Math.abs(info.changePct).toFixed(2) + "%)");
   if (detail) {
-    if (detail.sector) lines.push("섹터   : " + detail.sector);
-    if (detail.industry) lines.push("업종   : " + detail.industry);
+    if (detail.sector) lines.push("섹터:  " + detail.sector);
+    if (detail.industry) lines.push("업종:  " + detail.industry);
     var capCurrency = detail.detailCurrency || info.currency;
     var capStr = formatMarketCap(detail.marketCap, capCurrency, krwRate);
-    if (capStr) lines.push("시총  " + capStr);
+    if (capStr) lines.push("시총:  " + capStr);
   }
   return lines.join("\n");
 }
