@@ -5,7 +5,7 @@ var _yfAuthTs = 0;
 var _krwRate = 1380;
 var _krwRateTs = 0;
 var pendingTelegramMsgs = [];
-var GEMINI_API_KEY = "AIzaSyD2Vm5YH0I-gYQXM2HfojfHNhka5V1Ihqk";  // ← YouTube 요약용 Gemini API 키
+var GEMINI_API_KEY = "AIzaSyAKaPu53iWELIRXFaue0IvcMnlsfpQ5ztA";  // ← YouTube 요약용 Gemini API 키
 
 var _roomMap    = {};
 var _tgBotToken = "8245986955:AAG1yc6Pxo_41CI2ll6-Rdcs73OjpEi7pxc"; // ← 텔레그램 봇 토큰
@@ -498,27 +498,22 @@ function fetchQuote(symbol) {
 }
 function fetchQuoteDetailed(symbol) {
   var auth = getYFAuth();
-  var raw = httpGetWithHeaders(
-    "https://query2.finance.yahoo.com/v11/finance/quoteSummary/" +
-    urlEncode(symbol) + "?modules=assetProfile%2Cprice" +
-    (auth ? "&crumb=" + urlEncode(auth.crumb) : ""),
-    auth ? { "Cookie": auth.cookie } : {}
-  );
-  if (!raw) return null;
-  try {
-    var data = JSON.parse(raw);
-    var result = data.quoteSummary && data.quoteSummary.result && data.quoteSummary.result[0];
-    if (!result) return null;
-    var profile = result.assetProfile || {};
-    var priceData = result.price || {};
-    var cap = (priceData.marketCap && priceData.marketCap.raw) || null;
-    return {
-      sector: profile.sector || null,
-      industry: profile.industry || null,
-      marketCap: cap,
-      detailCurrency: priceData.currency || null
-    };
-  } catch(e) { return null; }
+  var bases = ["https://query1.finance.yahoo.com","https://query2.finance.yahoo.com"];
+  for (var i = 0; i < bases.length; i++) {
+    var url = bases[i] + "/v10/finance/quoteSummary/" + urlEncode(symbol) + "?modules=summaryProfile";
+    if (auth) url += "&crumb=" + urlEncode(auth.crumb);
+    var raw = httpGetWithHeaders(url, auth ? {"Cookie": auth.cookie} : {});
+    if (!raw) continue;
+    try {
+      var data = JSON.parse(raw);
+      var result = data.quoteSummary && data.quoteSummary.result && data.quoteSummary.result[0];
+      if (!result) continue;
+      var profile = result.summaryProfile || {};
+      if (!profile.sector && !profile.industry) continue;
+      return {sector: profile.sector||null, industry: profile.industry||null, marketCap: null, detailCurrency: null};
+    } catch(e) {}
+  }
+  return null;
 }
 function searchKrSymbol(query) {
   var tries = [query];
