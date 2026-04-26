@@ -888,6 +888,37 @@ function extractYoutubeUrl(msg) {
   var m=msg.match(/https?:\/\/(?:(?:www\.)?youtube\.com\/(?:watch\?[^\s)]*|shorts\/[^\s)]*)|youtu\.be\/[^\s)]*)/);
   return m?m[0]:null;
 }
+function extractArticleUrl(msg) {
+  var m = msg.match(/https?:\/\/[^\s)]+/);
+  if (!m) return null;
+  var url = m[0];
+  if (/youtube\.com|youtu\.be/.test(url)) return null;
+  return url;
+}
+function summarizeArticle(url) {
+  try {
+    var doc = org.jsoup.Jsoup.connect(url)
+      .header("User-Agent","Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36")
+      .ignoreContentType(true).ignoreHttpErrors(true).timeout(10000).get();
+    var title = doc.title() || "";
+    var text = "";
+    var selectors = ["#newsct_article",".article-body",".article_body","#articleBody",".news-content","article",".end_body"];
+    for (var i = 0; i < selectors.length; i++) {
+      var el = doc.select(selectors[i]);
+      if (el.size() > 0) { text = el.first().text(); break; }
+    }
+    if (!text) text = doc.body().text();
+    if (text.length > 3000) text = text.substring(0, 3000);
+    if (text.length < 50) return "⚠️ 기사 내용을 가져올 수 없어요.";
+    var prompt = "아래 기사 내용을 요약해줘.\n마크다운 기호(#, **, ---)는 절대 쓰지 마.\n서두 없이 바로 시작.\n한국어로 요약해줘.\n\n형식:\n📰 (제목)\n\n📌 핵심 내용\n- (포인트1)\n- (포인트2)\n- (포인트3, 내용 많으면)\n\n💡 (결론 한 줄)\n\n기사 제목: "+title+"\n기사 내용:\n"+text;
+    var apiUrl="https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key="+GEMINI_API_KEY;
+    var raw=httpPost(apiUrl,JSON.stringify({contents:[{parts:[{text:prompt}]}]}));
+    if (!raw) return "⚠️ API 응답 없음";
+    var resp=JSON.parse(raw);
+    if (resp.error) return "⚠️"+(resp.error.message||"API 오류");
+    return resp.candidates[0].content.parts[0].text||"⚠️ 요약 실패";
+  } catch(e) { return "⚠️ 기사 요약 실패: "+String(e); }
+}
 function summarizeYoutube(ytUrl) {
   try {
     var apiUrl="https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key="+GEMINI_API_KEY;
@@ -1037,6 +1068,15 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       if (!isDup(ytKey)) {
         replier.reply("🎬 영상분석, 요약 중...");
         replier.reply("📝 요약\n"+summarizeYoutube(ytUrl));
+      }
+    }
+
+    var artUrl=extractArticleUrl(msg);
+    if (artUrl) {
+      var artKey="art_"+artUrl.slice(-40);
+      if (!isDup(artKey)) {
+        replier.reply("📰 기사 요약 중...");
+        replier.reply(summarizeArticle(artUrl));
       }
     }
 
