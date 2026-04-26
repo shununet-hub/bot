@@ -426,6 +426,27 @@ function isDup(key) {
   return false;
 }
 
+function isFpDup(text) {
+  var now = new Date().getTime();
+  var urlMatch = text.match(/https?:\/\/[^\s]+/);
+  if (urlMatch) {
+    var urlKey = "url_" + urlMatch[0];
+    if (sent[urlKey] && now - sent[urlKey] < DEDUP_TTL) return true;
+    sent[urlKey] = now;
+  }
+  var cleaned = text.replace(/[^가-힣a-zA-Z0-9]/g, "").toLowerCase();
+  if (cleaned.length < 15) return false;
+  var limit = Math.min(cleaned.length - 15, 100);
+  for (var i = 0; i < limit; i++) {
+    var fp = cleaned.substring(i, i + 15);
+    if (sent[fp] && now - sent[fp] < DEDUP_TTL) return true;
+  }
+  for (var i = 0; i < limit; i++) {
+    sent[cleaned.substring(i, i + 15)] = now;
+  }
+  return false;
+}
+
 function getKrwRate() {
   var now = new Date().getTime();
   if (now - _krwRateTs < 300000) return _krwRate;
@@ -993,8 +1014,7 @@ function startTgPolling() {
               var msgLower=text.toLowerCase();
               var matched=KEYWORDS.some(function(kw){return msgLower.indexOf(kw)!==-1;});
               if (!matched) continue;
-                            var key=text.replace(/[^\uAC00-\uD7A3a-zA-Z0-9]/g,"").substring(0,80);
-                            if (isDup(key)) continue;
+              if (isFpDup(text)) continue;
 
 
 
