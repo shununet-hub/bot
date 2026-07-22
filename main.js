@@ -517,7 +517,12 @@ function fetchQuoteBatch(symbols) {
         prevClose: prev,
         change:    change,
         changePct: prev ? (change / prev) * 100 : 0,
-        currency:  q.currency || "USD"
+        currency:  q.currency || "USD",
+        marketState:         q.marketState || "",
+        preMarketPrice:      q.preMarketPrice || null,
+        preMarketChangePct:  q.preMarketChangePercent || 0,
+        postMarketPrice:     q.postMarketPrice || null,
+        postMarketChangePct: q.postMarketChangePercent || 0
       };
     }
     return map;
@@ -556,6 +561,30 @@ function fetchQuote(symbol) {
   } catch (e) {
     return null;
   }
+}
+
+// ── 시간외(프리장/애프터장) 세션 추출 ────────────────────────────────
+// 야후는 미국주식 데이장(주간거래·Blue Ocean) 체결을 안 실어주므로,
+// 본장 외 시간에는 가장 최근 시간외 체결가(프리장/애프터장)를 병기한다.
+function extendedSession(info) {
+  if (!info || info.currency === "KRW" || info.currency === "JPY") return null;
+  if (info.symbol && info.symbol.charAt(0) === "^") return null;
+  var st = info.marketState || "";
+  if (!st || st === "REGULAR") return null;
+  if (st === "PRE" && info.preMarketPrice) {
+    return { label: "프리장", price: info.preMarketPrice, pct: info.preMarketChangePct };
+  }
+  if (info.postMarketPrice) {
+    return { label: "애프터", price: info.postMarketPrice, pct: info.postMarketChangePct };
+  }
+  return null;
+}
+
+// ── 단일 종목 조회: v7(시간외 포함) 우선 → v8 차트 fallback ──────────
+function fetchQuoteFull(symbol) {
+  var map = fetchQuoteBatch([symbol]);
+  if (map[symbol]) return map[symbol];
+  return fetchQuote(symbol);
 }
 
 // ── 숫자 포맷 ─────────────────────────────────────────────────────────
@@ -597,10 +626,18 @@ function formatQuote(info, displayName) {
     prevStr  = "$" + commasFloat(info.prevClose);
   }
 
+  var extStr = "";
+  var ext = extendedSession(info);
+  if (ext) {
+    var eSign = ext.pct >= 0 ? "+" : "";
+    extStr = "\n" + ext.label + ": $" + commasFloat(ext.price) +
+      " (" + eSign + ext.pct.toFixed(2) + "%)";
+  }
+
   return "📊 " + name + " (" + dispSym + ")\n\n" +
     "현재가: " + priceStr + "\n" +
     arrow + " " + chgStr + " (" + sign + info.changePct.toFixed(2) + "%)\n" +
-    "전일종가: " + prevStr;
+    "전일종가: " + prevStr + extStr;
 }
 
 // ── /지수 ─────────────────────────────────────────────────────────────
@@ -649,7 +686,13 @@ function sectorLine(item, useTicker, preInfo) {
   var price  = isKRW ? commasInt(info.price)
              : isJPY ? "¥" + commasInt(info.price)
              : "$" + commasFloat(info.price);
-  return label + "  " + price + " (" + arrow + pct + ")";
+  var line = label + "  " + price + " (" + arrow + pct + ")";
+  var ext = extendedSession(info);
+  if (ext) {
+    var eSign = ext.pct >= 0 ? "+" : "";
+    line += " ·" + ext.label + " $" + commasFloat(ext.price) + "(" + eSign + ext.pct.toFixed(2) + "%)";
+  }
+  return line;
 }
 
 function buildSectorMsg(title, stocks, extra, useTicker, footer) {
@@ -690,7 +733,7 @@ function fetchCombinedSemi() {
       intl.push(sectorLine(INTL_SEMI_EXTRA[k], true, map[INTL_SEMI_EXTRA[k].s] || null));
     }
   }
-  intl.push("\n(본장시간 외 종가로 표기)");
+  intl.push("\n(본장 외엔 종가 표시 · 프리/애프터장 체결시 병기 · 데이장은 야후 미지원)");
 
   return kr.join("\n") + "\n\n" + intl.join("\n");
 }
@@ -703,8 +746,8 @@ function handleSlash(query, replier) {
   if (entry === "__OILPRICE__")      { replier.reply(fetchOilPrice());     return; }
   if (entry === "__SEMI_COMBINED__") { replier.reply(fetchCombinedSemi()); return; }
   if (entry === "__KR_SEMI__")       { replier.reply(buildSectorMsg("🇰🇷 한국 반도체 시세", KR_SEMI_STOCKS, null, false, null)); return; }
-  if (entry === "__INTL_SEMI__")   { replier.reply(buildSectorMsg("🌐 해외 반도체 시세", INTL_SEMI_STOCKS, INTL_SEMI_EXTRA, true, "(본장시간 외 종가로 표기)")); return; }
-  if (entry === "__US_TECH__")     { replier.reply(buildSectorMsg("🇺🇸 미국 기술주 시세", US_TECH_STOCKS, null, true, "(본장시간 외 종가로 표기)")); return; }
+  if (entry === "__INTL_SEMI__")   { replier.reply(buildSectorMsg("🌐 해외 반도체 시세", INTL_SEMI_STOCKS, INTL_SEMI_EXTRA, true, "(본장 외엔 종가 표시 · 프리/애프터장 체결시 병기 · 데이장은 야후 미지원)")); return; }
+  if (entry === "__US_TECH__")     { replier.reply(buildSectorMsg("🇺🇸 미국 기술주 시세", US_TECH_STOCKS, null, true, "(본장 외엔 종가 표시 · 프리/애프터장 체결시 병기 · 데이장은 야후 미지원)")); return; }
 
   // 디버그: 현재 봇이 인식 중인 방 목록
   if (query === "세션") {
@@ -722,7 +765,7 @@ function handleSlash(query, replier) {
     symbol      = entry.s;
     displayName = entry.n;
   } else if (/^\d{6}$/.test(query)) {
-    var ksInfo = fetchQuote(query + ".KS") || fetchNaverQuote(query, query + ".KS");
+    var ksInfo = fetchQuoteFull(query + ".KS") || fetchNaverQuote(query, query + ".KS");
     if (ksInfo) { replier.reply(formatQuote(ksInfo, null)); return; }
     symbol      = query + ".KQ";
     displayName = null;
@@ -735,7 +778,7 @@ function handleSlash(query, replier) {
     displayName = null;
   }
 
-  var info = fetchQuote(symbol);
+  var info = fetchQuoteFull(symbol);
   if (!info && /\.(KS|KQ)$/.test(symbol)) {
     info = fetchNaverQuote(symbol.replace(/\.(KS|KQ)$/, ""), symbol);
   }
